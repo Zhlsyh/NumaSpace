@@ -17,7 +17,7 @@ import { studyAudio } from '../utils/audio';
 import { sendBrowserNotification } from '../utils/streak';
 import { selfieTracker } from '../utils/selfieSegmentation';
 import { WhiteboardModal } from './WhiteboardModal';
-import { NemuLogo } from './NemuLogo';
+import { NumaLogo } from './NumaLogo';
 
 
 import { 
@@ -1016,7 +1016,7 @@ export const StudyRoom: React.FC<Props> = ({
         {/* Left: App Logo & Active Session Status Badge */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0 overflow-hidden">
           <div className="shrink-0 max-sm:[&_span]:hidden">
-            <NemuLogo size="sm" />
+            <NumaLogo size="sm" />
           </div>
 
           {/* Unified Active Session Box */}

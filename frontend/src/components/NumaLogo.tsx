@@ -1,12 +1,12 @@
 import React from 'react';
 
-interface NemuLogoProps {
+interface NumaLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   variant?: 'full' | 'icon';
 }
 
-export const NemuLogo: React.FC<NemuLogoProps> = ({
+export const NumaLogo: React.FC<NumaLogoProps> = ({
   size = 'md',
   className = '',
   variant = 'full',

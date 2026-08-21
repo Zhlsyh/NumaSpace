@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, GenderType, StudyMode, GlobalStats, UserStreakStats } from '../types';
-import { NemuLogo } from './NemuLogo';
+import { NumaLogo } from './NumaLogo';
 import { getUserStreakStats, requestBrowserNotificationPermission, calculateUnlockedBadges } from '../utils/streak';
 import {
   Sparkles,
@@ -138,7 +138,7 @@ export const AnonymousEntryForm: React.FC<Props> = ({ onStartMatching, onStartIn
     >
       {/* Top Navbar */}
       <nav className="flex justify-between items-center mb-4 sm:mb-6 md:mb-8 max-w-6xl mx-auto w-full">
-        <NemuLogo size="md" />
+        <NumaLogo size="md" />
 
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="bg-indigo-500/30 text-indigo-100 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold backdrop-blur-md border border-indigo-400/20 flex items-center gap-1.5 sm:gap-2">

@@ -1,6 +1,6 @@
 import { UserStreakStats, BadgeItem } from '../types';
 
-const STREAK_KEY = 'studymatch_user_streak_stats';
+const STREAK_KEY = 'numaspace_user_streak_stats';
 
 export const ALL_BADGES: Omit<BadgeItem, 'unlocked'>[] = [
   { id: 'first_step', name: 'Langkah Pertama', description: 'Selesaikan sesi belajar pertama Anda', icon: '' },
