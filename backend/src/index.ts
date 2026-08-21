@@ -61,7 +61,6 @@ async function startServer() {
     });
   }
 
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
   if (typeof process.env.PORT === "string" && process.env.PORT.startsWith("\\\\.\\pipe\\")) {
     server.listen(process.env.PORT, () => {
       console.log(`Numa Space server running on named pipe: ${process.env.PORT}`);
