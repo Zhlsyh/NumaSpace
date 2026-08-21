@@ -1,5 +1,5 @@
 {
-  "name": "Numa Space",
+  "name": "numaspace",
   "description": "Platform belajar bersama virtual real-time dengan anonymous entry, 1-click matchmaking, bio partner, WebRTC video/audio, chat, dan synchronized Pomodoro study room.",
   "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
