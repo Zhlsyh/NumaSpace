@@ -9,7 +9,7 @@ export function createApiRouter(io: SocketIOServer) {
     const stats = getStats(io);
     res.json({
       status: "ok",
-      appName: "StudyMatch",
+      appName: "Numa Space",
       ...stats,
     });
   });

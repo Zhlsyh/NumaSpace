@@ -42,7 +42,7 @@ export const SessionSummaryModal: React.FC<Props> = ({
       ? unlockedBadges.map((b) => `- ${b.icon} **${b.name}**: ${b.description}`).join('\n')
       : '- 🌱 **Langkah Pertama**: Selesai sesi pertama';
 
-    const reportText = `# 🎓 NemuSpace - Session Summary Report
+    const reportText = `# 🎓 Numa Space - Session Summary Report
 Date: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 
 ---
@@ -57,7 +57,7 @@ Date: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric
 ${badgeText}
 
 ---
-*Generated automatically by NemuSpace - Live P2P Virtual Study Room*
+*Generated automatically by Numa Space - Live P2P Virtual Study Room*
 `;
 
 
@@ -65,7 +65,7 @@ ${badgeText}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `NemuSpace_Report_${Date.now()}.md`;
+    a.download = `NumaSpace_Report_${Date.now()}.md`;
 
     a.click();
     URL.revokeObjectURL(url);

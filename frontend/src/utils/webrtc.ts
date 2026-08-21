@@ -680,7 +680,7 @@ export class WebRTCManager {
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 22px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('NEMU SPACE LIVE VIDEO', 320, 310);
+      ctx.fillText('NUMA SPACE LIVE VIDEO', 320, 310);
 
 
       ctx.fillStyle = '#a5b4fc';

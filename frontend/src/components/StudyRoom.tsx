@@ -132,7 +132,7 @@ export const StudyRoom: React.FC<Props> = ({
     {
       id: 'system_welcome',
       senderId: 'system',
-      senderName: 'StudyMatch Bot',
+      senderName: 'Numa Space Bot',
       text: `Sesi belajar dimulai! Terhubung dengan ${roomData.partner.displayName} (${roomData.partner.major}).`,
       timestamp: Date.now(),
       type: 'system',

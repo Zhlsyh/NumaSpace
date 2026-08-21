@@ -1,4 +1,4 @@
-# 🎓 NumaSpace (StudyMatch)
+# 🎓 Numa Space
 
 > **Platform Teman Belajar Virtual Real-Time**  
 > Pasangkan diri Anda dengan kawan belajar secara anonim, dilengkapi video/audio call P2P WebRTC, timer Pomodoro ter-sinkronisasi, catatan bersama (scratchpad), papan tulis interaktif (whiteboard), dan fitur moderasi keamanan.

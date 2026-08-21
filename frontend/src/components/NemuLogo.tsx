@@ -26,7 +26,7 @@ export const NemuLogo: React.FC<NemuLogoProps> = ({
       <div className={`${s.icon} bg-amber-400 overflow-hidden shadow-lg border-2 border-amber-300 transform rotate-3 hover:rotate-0 transition-transform duration-200 flex-shrink-0 flex items-center justify-center`}>
         <img
           src="/logo.png"
-          alt="NemuSpace Logo"
+          alt="Numa Space Logo"
           className="w-full h-full object-cover"
         />
       </div>
@@ -34,7 +34,7 @@ export const NemuLogo: React.FC<NemuLogoProps> = ({
       {variant === 'full' && (
         <div className="flex items-center">
           <span className={`${s.title} font-black text-white tracking-tight`}>
-            NemuSpace
+            Numa Space
           </span>
         </div>
       )}

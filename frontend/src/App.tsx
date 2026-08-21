@@ -1,5 +1,5 @@
 /**
- * StudyMatch - Virtual Study Partner Matchmaking Web App
+ * Numa Space - Virtual Study Partner Matchmaking Web App
  * Real-time anonymous study matchmaking with WebRTC video/audio, synchronized Pomodoro & scratchpad.
  */
 
@@ -64,7 +64,7 @@ export default function App() {
     });
 
     s.on('connect', () => {
-      console.log('Connected to StudyMatch Server with ID:', s.id);
+      console.log('Connected to Numa Space Server with ID:', s.id);
     });
 
     s.on('stats_update', (stats: GlobalStats) => {

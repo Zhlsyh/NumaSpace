@@ -555,7 +555,7 @@ export const AnonymousEntryForm: React.FC<Props> = ({ onStartMatching, onStartIn
       {/* Footer */}
       <footer className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-center text-indigo-200 px-4 text-xs sm:text-sm font-medium gap-2 max-w-6xl mx-auto w-full">
         <p className="text-center sm:text-left text-[11px] sm:text-xs font-semibold">
-          &copy; NemuSpace • Privacy First • No History Stored
+          &copy; Numa Space • Privacy First • No History Stored
         </p>
 
         <div className="flex gap-3 sm:gap-6 text-[10px] sm:text-sm font-bold uppercase tracking-widest">

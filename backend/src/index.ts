@@ -52,7 +52,7 @@ async function startServer() {
   }
 
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`StudyMatch server running at http://0.0.0.0:${PORT}`);
+    console.log(`Numa Space server running at http://0.0.0.0:${PORT}`);
   });
 }
 

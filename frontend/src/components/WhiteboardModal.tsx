@@ -208,7 +208,7 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
     const image = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.href = image;
-    link.download = `NemuSpace_Whiteboard_${Date.now()}.png`;
+    link.download = `NumaSpace_Whiteboard_${Date.now()}.png`;
 
     link.click();
   };
