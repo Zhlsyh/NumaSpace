@@ -58,7 +58,8 @@ export default function App() {
   useEffect(() => {
     authenticateAnonymously();
 
-    const s = io(window.location.origin, {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+    const s = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
     });
