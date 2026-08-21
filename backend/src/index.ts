@@ -50,9 +50,16 @@ async function startServer() {
     });
   }
 
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Numa Space server running at http://0.0.0.0:${PORT}`);
-  });
+  const rawPort = process.env.PORT;
+  if (rawPort) {
+    server.listen(rawPort, () => {
+      console.log(`Numa Space server running on port/pipe: ${rawPort}`);
+    });
+  } else {
+    server.listen(3000, "0.0.0.0", () => {
+      console.log(`Numa Space server running at http://0.0.0.0:3000`);
+    });
+  }
 }
 
 startServer().catch((err) => {
