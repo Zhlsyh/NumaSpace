@@ -1,14 +1,13 @@
 import express from "express";
 import http from "http";
 import path from "path";
-import { fileURLToPath } from "url";
 import { Server as SocketIOServer } from "socket.io";
 import { createServer as createViteServer } from "vite";
 import { initSocketHandlers, startStatsTicker } from "./handlers/socketHandler";
 import { createApiRouter } from "./routes/api";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe dir path determination for both CJS and ESM
+const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
 
 async function startServer() {
   const app = express();
