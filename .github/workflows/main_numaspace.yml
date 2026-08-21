@@ -31,7 +31,7 @@ jobs:
 
       - name: Zip minimal production package
         run: |
-          zip -r release.zip dist server.js package.json package-lock.json web.config .deployment
+          zip -r release.zip dist server.cjs package.json package-lock.json web.config .deployment
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
