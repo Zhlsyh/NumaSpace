@@ -63,5 +63,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'numaspace'
+          app-name: 'numaspace-facndgcnbjh5eugy'
           package: 'release.zip'

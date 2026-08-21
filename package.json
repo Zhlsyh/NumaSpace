@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx backend/src/index.ts",
-    "build": "vite build frontend && esbuild backend/src/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build frontend && esbuild backend/src/index.ts --bundle --platform=node --format=cjs --external:vite --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist frontend/dist",
     "lint": "tsc --noEmit"
