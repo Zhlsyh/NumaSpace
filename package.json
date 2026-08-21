@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "tsx backend/src/index.ts",
     "build": "vite build frontend && esbuild backend/src/index.ts --bundle --platform=node --format=cjs --external:vite --sourcemap --outfile=dist/server.cjs",
+    "build:frontend": "vite build frontend",
+    "build:backend": "esbuild backend/src/index.ts --bundle --platform=node --format=cjs --external:vite --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "clean": "rm -rf dist frontend/dist",
+    "clean": "powershell -Command \"Remove-Item -Recurse -Force -ErrorAction SilentlyContinue dist\"",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
