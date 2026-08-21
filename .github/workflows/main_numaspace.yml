@@ -61,4 +61,4 @@ jobs:
 
       - name: Deploy to Azure Web App via Azure CLI ZipDeploy
         run: |
-          az webapp deploy --name numaspace --src-path release.zip --type zip
+          az webapp deploy --name numaspace-facndgcnbjh5eugy --src-path release.zip --type zip || az webapp deploy --name numaspace --src-path release.zip --type zip
