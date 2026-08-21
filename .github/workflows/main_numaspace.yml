@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
           cache: 'npm'
 
       - name: Install dependencies and build
@@ -59,6 +59,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_811F1C1FAADB4CE2A8FE5D50968890C0 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BBBC3E7FC4874A3697D5842F67A65AB9 }}
 
-      - name: Deploy to Azure Web App via Azure CLI ZipDeploy
-        run: |
-          az webapp deploy --name numaspace-facndgcnbjh5eugy --src-path release.zip --type zip || az webapp deploy --name numaspace --src-path release.zip --type zip
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
+        with:
+          app-name: 'numaspace-facndgcnbjh5eugy'
+          package: 'release.zip'
