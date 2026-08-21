@@ -371,11 +371,7 @@ export class WebRTCManager {
       try {
         if (video) {
           acquiredStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280, max: 1920 },
-              height: { ideal: 720, max: 1080 },
-              frameRate: { ideal: 30, max: 60 },
-            },
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
             audio: audioConstraints,
           });
         } else {
@@ -387,7 +383,7 @@ export class WebRTCManager {
       } catch (err) {
         console.warn('getUserMedia failed with real constraints:', err);
         try {
-          acquiredStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          acquiredStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         } catch {
           acquiredStream = this.createSyntheticMediaStream();
         }
@@ -438,11 +434,7 @@ export class WebRTCManager {
       if (!videoTrack) {
         try {
           const newVideoStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280, max: 1920 },
-              height: { ideal: 720, max: 1080 },
-              frameRate: { ideal: 30, max: 60 },
-            },
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
           });
           videoTrack = newVideoStream.getVideoTracks()[0];
           if (videoTrack && this.localStream) {
@@ -469,6 +461,7 @@ export class WebRTCManager {
           } else {
             this.peerConnection.addTrack(videoTrack, this.localStream);
           }
+          await this.createAndSendOffer();
         }
       }
     } else {
