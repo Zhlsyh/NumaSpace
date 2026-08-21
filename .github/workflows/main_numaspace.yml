@@ -29,7 +29,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Zip production assets
+      - name: Zip minimal production package
         run: |
           zip -r release.zip dist package.json package-lock.json web.config .deployment
 
@@ -52,14 +52,6 @@ jobs:
         with:
           name: node-app
 
-      - name: Unzip release package
-        run: unzip release.zip -d deploy_pkg
-
-      - name: Install production dependencies
-        run: |
-          cd deploy_pkg
-          npm ci --omit=dev
-
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -73,4 +65,4 @@ jobs:
         with:
           app-name: 'numaspace'
           slot-name: 'Production'
-          package: './deploy_pkg'
+          package: 'release.zip'
