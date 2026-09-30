@@ -70,7 +70,7 @@ interface Props {
   socket: Socket | null;
   roomData: RoomSessionData;
   myProfile: UserProfile;
-  onSkipPartner: () => void;
+  onSkipPartner: (report?: { reason: string; blockPartner: boolean }) => void;
   onLeaveRoom: (summary: { focusMinutes: number; todosCompleted: number }) => void;
 }
 
@@ -109,7 +109,7 @@ export const StudyRoom: React.FC<Props> = ({
   const [activeTool, setActiveTool] = useState<'pomodoro' | 'scratchpad' | 'todos'>('pomodoro');
 
   const [showWhiteboard, setShowWhiteboard] = useState<boolean>(false);
-  const [networkQuality, setNetworkQuality] = useState<NetworkQuality>('excellent');
+  const [networkQuality, setNetworkQuality] = useState<NetworkQuality>('unknown');
   const [rttMs, setRttMs] = useState<number>(0);
 
   // Video & Audio Refs
@@ -184,16 +184,11 @@ export const StudyRoom: React.FC<Props> = ({
 
 
 
-  const handleReportUser = (reason: string) => {
-    if (socket) {
-      socket.emit('report_user', {
-        roomId: roomData.roomId,
-        reason,
-        userProfile: myProfile,
-      });
-    }
+  const handleReportUser = (reason: string, blockPartner: boolean) => {
     setShowReportModal(false);
-    onSkipPartner();
+    selfieTracker.stopBlurLoop();
+    webrtcManagerRef.current?.cleanup();
+    onSkipPartner({ reason, blockPartner });
   };
 
   const triggerShortcutToast = useCallback((message: string, key: string) => {
@@ -981,7 +976,7 @@ export const StudyRoom: React.FC<Props> = ({
   ]);
 
   return (
-    <div className="min-h-screen bg-indigo-600 text-slate-900 flex flex-col font-sans selection:bg-amber-400 selection:text-indigo-950 relative overflow-x-hidden">
+    <div className="min-h-screen text-[#0F1E1C] flex flex-col font-sans selection:bg-[#FDC323] selection:text-[#0F1E1C] relative overflow-x-hidden">
       
       {/* Floating Reaction Layer with Framer Motion Drift (Positioned high above bottom controls) */}
       <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
@@ -996,60 +991,58 @@ export const StudyRoom: React.FC<Props> = ({
                 animate={{ opacity: 1, y: -160, scale: 1.1 }}
                 exit={{ opacity: 0, y: -230, scale: 0.8 }}
                 transition={{ duration: 2.5, ease: "easeOut" }}
-                className="absolute bottom-36 right-4 sm:right-12 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border-2 border-amber-300 shadow-2xl text-xs text-indigo-950 font-black pointer-events-none z-30"
+                className="absolute bottom-36 right-4 sm:right-12 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border-2 border-[#0F1E1C] shadow-xl text-xs text-[#0F1E1C] font-black pointer-events-none z-30"
               >
                 <div className={`p-1.5 rounded-full ${reactionObj.color}`}>
                   <IconComp className="w-4 h-4" />
                 </div>
-                <span className="font-black text-indigo-900">{r.name}</span>
+                <span className="font-black text-[#0F1E1C]">{r.name}</span>
               </motion.div>
             );
           })}
         </AnimatePresence>
       </div>
 
-
-
-      {/* Top Bar: Minimalist Clean Navbar (Logo, Timer, Skip & Akhiri - Zero Scroll) */}
-      <header className="border-b border-indigo-500/40 bg-indigo-700/95 backdrop-blur-md px-2 sm:px-5 py-1.5 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-2 sticky top-0 z-30 shadow-md text-white w-full overflow-hidden">
+      {/* Top Bar: Clean Flat Navbar (Logo, Timer, Skip & Akhiri) */}
+      <header className="border-b-2 border-[#D2E4E8] bg-white/70 backdrop-blur-md px-3 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-xs text-[#0F1E1C] w-full overflow-hidden">
         
         {/* Left: App Logo & Active Session Status Badge */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-3 shrink min-w-0 overflow-hidden">
           <div className="shrink-0 max-sm:[&_span]:hidden">
-            <NumaLogo size="sm" />
+            <NumaLogo size="sm" theme="dark" />
           </div>
 
           {/* Unified Active Session Box */}
-          <div className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-indigo-950/80 border border-indigo-400/30 text-white shadow-inner shrink min-w-0 truncate">
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#EDF5F7] border border-[#D2E4E8] text-[#0F1E1C] shrink min-w-0 truncate">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00785D] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00785D]"></span>
               </span>
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 truncate">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#0F1E1C] truncate">
                 {myProfile.roomCode ? `Private: ${myProfile.roomCode}` : 'Sesi Aktif'}
               </span>
             </div>
 
-            <span className="text-indigo-500 text-xs">|</span>
+            <span className="text-[#539BA9] text-xs">|</span>
 
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-bold text-slate-100 shrink-0">
-              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0" />
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-bold text-[#0F1E1C] shrink-0">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#00785D] shrink-0" />
               <span>{formatSessionTime(sessionSeconds)}</span>
             </div>
 
-            <span className="text-indigo-500 text-xs hidden sm:inline">|</span>
+            <span className="text-[#539BA9] text-xs hidden sm:inline">|</span>
 
             <span className={`hidden sm:inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
-              pomodoro.mode === 'focus' ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+              pomodoro.mode === 'focus' ? 'bg-[#FDC323] text-[#0F1E1C] border border-[#0F1E1C]/15' : 'bg-[#0F1E1C] text-[#FDC323]'
             }`}>
               {pomodoro.mode === 'focus' ? 'Fokus' : 'Rehat'}
             </span>
           </div>
         </div>
 
-        {/* Right: Essential Action Controls ONLY (Skip & Akhiri - Fit 100% Screen) */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Right: Essential Action Controls ONLY (Skip & Akhiri) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Skip / Cari Partner Lain Button */}
           <button
             id="btn-skip-partner"
@@ -1061,10 +1054,10 @@ export const StudyRoom: React.FC<Props> = ({
               }
               onSkipPartner();
             }}
-            className="px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-amber-400 hover:bg-amber-300 text-indigo-950 border sm:border-2 border-amber-300 text-[11px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+            className="px-3 sm:px-4 py-1.5 rounded-full bg-[#0F1E1C] hover:bg-[#172B28] text-white border-2 border-[#0F1E1C] text-[11px] sm:text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer shrink-0"
             title="Cari partner belajar baru [Esc]"
           >
-            <SkipForward className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <SkipForward className="w-3.5 h-3.5 text-[#FDC323] shrink-0" />
             <span>Skip</span>
           </button>
 
@@ -1082,10 +1075,10 @@ export const StudyRoom: React.FC<Props> = ({
                 todosCompleted: todos.filter((t) => t.done).length,
               });
             }}
-            className="px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl bg-rose-500 hover:bg-rose-600 text-white border border-rose-400 text-[11px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+            className="px-3 sm:px-4 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border-2 border-rose-200 text-[11px] sm:text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
             title="Akhiri Sesi Belajar"
           >
-            <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>Akhiri</span>
           </button>
         </div>
@@ -1093,16 +1086,16 @@ export const StudyRoom: React.FC<Props> = ({
       </header>
 
       {/* Dedicated Room Features Sub-Bar (Ambient Sound, Ping Latency, Whiteboard, Pintasan, Report) */}
-      <div className="bg-indigo-900/90 border-b border-indigo-500/40 px-3 sm:px-5 py-1.5 flex items-center justify-between gap-2 text-white overflow-x-auto no-scrollbar shrink-0">
+      <div className="bg-[#F4F8F9] border-b border-[#D2E4E8] px-3 sm:px-5 py-1.5 flex items-center justify-between gap-2 text-[#0F1E1C] overflow-x-auto no-scrollbar shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
           {/* Suara Ambient Controls */}
-          <div className="flex items-center gap-1 bg-indigo-950/80 border border-indigo-400/30 px-1.5 py-1 rounded-xl shrink-0">
+          <div className="flex items-center gap-1 bg-white border border-[#D2E4E8] px-1.5 py-0.5 rounded-full shrink-0 shadow-xs">
             <button
               type="button"
               onClick={() => handleToggleAmbient('rain')}
               title="Suara Hujan (Rain)"
-              className={`p-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                ambientType === 'rain' ? 'bg-amber-400 text-indigo-950 font-bold' : 'text-indigo-200 hover:text-white'
+              className={`p-1.5 rounded-full text-xs transition-colors cursor-pointer ${
+                ambientType === 'rain' ? 'bg-[#0F1E1C] text-[#FDC323] font-bold' : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
               }`}
             >
               <CloudRain className="w-3.5 h-3.5" />
@@ -1111,8 +1104,8 @@ export const StudyRoom: React.FC<Props> = ({
               type="button"
               onClick={() => handleToggleAmbient('cafe')}
               title="Suara Cafe Lofi"
-              className={`p-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                ambientType === 'cafe' ? 'bg-amber-400 text-indigo-950 font-bold' : 'text-indigo-200 hover:text-white'
+              className={`p-1.5 rounded-full text-xs transition-colors cursor-pointer ${
+                ambientType === 'cafe' ? 'bg-[#0F1E1C] text-[#FDC323] font-bold' : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
               }`}
             >
               <Coffee className="w-3.5 h-3.5" />
@@ -1121,8 +1114,8 @@ export const StudyRoom: React.FC<Props> = ({
               type="button"
               onClick={() => handleToggleAmbient('binaural')}
               title="Binaural Theta Wave"
-              className={`p-1 rounded-lg text-xs transition-colors cursor-pointer ${
-                ambientType === 'binaural' ? 'bg-amber-400 text-indigo-950 font-bold' : 'text-indigo-200 hover:text-white'
+              className={`p-1.5 rounded-full text-xs transition-colors cursor-pointer ${
+                ambientType === 'binaural' ? 'bg-[#0F1E1C] text-[#FDC323] font-bold' : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
               }`}
             >
               <Waves className="w-3.5 h-3.5" />
@@ -1135,7 +1128,7 @@ export const StudyRoom: React.FC<Props> = ({
                 step="0.05"
                 value={ambientVolume}
                 onChange={(e) => handleAmbientVolume(parseFloat(e.target.value))}
-                className="w-10 sm:w-14 h-1.5 accent-amber-400 ml-1 cursor-pointer"
+                className="w-10 sm:w-14 h-1.5 accent-[#0F1E1C] ml-1 cursor-pointer"
                 title="Volume Ambient"
               />
             )}
@@ -1143,23 +1136,23 @@ export const StudyRoom: React.FC<Props> = ({
 
           {/* Sinyal Ping Latency Badge */}
           <div 
-            className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500/40 text-[10px] sm:text-[11px] font-bold shrink-0"
-            title={`WebRTC Peer Ping: ${rttMs || 35}ms (${networkQuality})`}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#D2E4E8] text-[10px] sm:text-[11px] font-bold shrink-0 shadow-xs"
+            title={rttMs > 0 ? `Ping WebRTC: ${rttMs}ms (${networkQuality})` : 'Menunggu data koneksi peer'}
           >
             <span className={`w-2 h-2 rounded-full ${
-              networkQuality === 'excellent' ? 'bg-emerald-400 animate-pulse' : networkQuality === 'good' ? 'bg-amber-400' : 'bg-rose-400'
+              networkQuality === 'excellent' ? 'bg-[#00785D] animate-pulse' : networkQuality === 'good' ? 'bg-amber-400' : networkQuality === 'poor' ? 'bg-rose-400' : 'bg-[#539BA9]'
             }`} />
-            <span className="font-mono text-indigo-200">{rttMs > 0 ? `${rttMs}ms` : '38ms'}</span>
+            <span className="font-mono text-[#3A6B6A]">{rttMs > 0 ? `${rttMs}ms` : 'Menunggu'}</span>
           </div>
 
           {/* Papan Tulis Button */}
           <button
             type="button"
             onClick={() => setShowWhiteboard(true)}
-            className="px-2.5 py-1 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-400/30 text-amber-300 hover:text-amber-200 font-bold flex items-center gap-1 text-xs shrink-0 cursor-pointer"
+            className="px-3 py-1 rounded-full bg-[#E7F8FC] hover:bg-[#E7F8FC] border border-[#99DDE9] text-[#003D30] font-black flex items-center gap-1 text-xs shrink-0 cursor-pointer transition-all"
             title="Buka Papan Tulis Digital"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-[#00785D]" />
             <span>Papan Tulis</span>
           </button>
 
@@ -1167,10 +1160,10 @@ export const StudyRoom: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setShowShortcutsModal(true)}
-            className="px-2.5 py-1 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-400/30 text-indigo-100 hover:text-white font-bold flex items-center gap-1 text-xs shrink-0 cursor-pointer"
+            className="px-3 py-1 rounded-full bg-white hover:bg-[#F6F9FA] border border-[#D2E4E8] text-[#1D4D4A] font-bold flex items-center gap-1 text-xs shrink-0 cursor-pointer transition-colors shadow-xs"
             title="Lihat Pintasan Keyboard"
           >
-            <Keyboard className="w-3.5 h-3.5 text-amber-300" />
+            <Keyboard className="w-3.5 h-3.5 text-[#00785D]" />
             <span>Pintasan</span>
           </button>
 
@@ -1178,30 +1171,30 @@ export const StudyRoom: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setShowReportModal(true)}
-            className="p-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 hover:text-white transition-all shrink-0 cursor-pointer"
+            className="p-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 transition-all shrink-0 cursor-pointer shadow-xs"
             title="Laporkan Partner / Masalah Keamanan"
           >
-            <ShieldAlert className="w-4 h-4" />
+            <ShieldAlert className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Dedicated Partner Bio Banner (Separate from Navbar & Tools Sub-Bar) */}
-      <div className="bg-indigo-950/90 border-b border-indigo-600/30 px-3 sm:px-5 py-2 text-white">
+      {/* Dedicated Partner Bio Banner */}
+      <div className="bg-[#E6F5F1] border-b border-[#D2E4E8] px-3 sm:px-5 py-2 text-[#0F1E1C]">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-indigo-300 font-bold">Partner Belajar:</span>
-            <span className="font-black text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/30">{roomData.partner.displayName}</span>
-            <span className="text-indigo-600 font-bold">•</span>
-            <span className="text-indigo-200 font-bold">{roomData.partner.major}</span>
-            <span className="text-indigo-600 font-bold">•</span>
-            <span className="text-rose-300 font-medium">{roomData.partner.interest}</span>
+            <span className="text-[#3A6B6A] font-bold">Partner:</span>
+            <span className="font-black text-[#FDC323] bg-[#0F1E1C] px-2.5 py-0.5 rounded-full">{roomData.partner.displayName}</span>
+            <span className="text-[#539BA9] font-bold">•</span>
+            <span className="text-[#1A3A38] font-bold">{roomData.partner.major}</span>
+            <span className="text-[#539BA9] font-bold">•</span>
+            <span className="text-[#00664F] font-semibold">{roomData.partner.interest}</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             {/* Mode Belajar Badge */}
-            <div className="flex items-center gap-1.5 bg-indigo-900/90 px-2.5 py-1 rounded-full border border-indigo-400/40 text-[11px] font-bold text-amber-300 shadow-sm">
-              <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#D2E4E8] text-[11px] font-bold text-[#0F1E1C] shadow-xs">
+              <Clock className="w-3 h-3 text-[#00785D] shrink-0" />
               <span>Mode: {
                 myProfile.studyMode === 'silent' ? 'Silent Study 🔇' :
                 myProfile.studyMode === 'discussion' ? 'Diskusi Aktif 🗣️' :
@@ -1210,9 +1203,9 @@ export const StudyRoom: React.FC<Props> = ({
             </div>
 
             {roomData.partner.currentGoal && (
-              <div className="flex items-center gap-1.5 bg-indigo-900/60 px-3 py-1 rounded-full border border-indigo-500/30 text-[11px]">
-                <Target className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="text-indigo-200">Target Partner: <strong className="text-emerald-300 font-bold">{roomData.partner.currentGoal}</strong></span>
+              <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#D2E4E8] text-[11px] shadow-xs">
+                <Target className="w-3.5 h-3.5 text-[#00785D] shrink-0" />
+                <span className="text-[#3A6B6A]">Target: <strong className="text-[#0F1E1C] font-bold">{roomData.partner.currentGoal}</strong></span>
               </div>
             )}
           </div>
@@ -1224,15 +1217,15 @@ export const StudyRoom: React.FC<Props> = ({
 
 
       {/* Mobile Navigation Tab Bar (3 Views: Video, Tools, Chat) */}
-      <div className="lg:hidden sticky top-[53px] sm:top-[57px] z-20 bg-indigo-900/95 backdrop-blur-md px-2.5 py-1.5 border-b border-indigo-500/30">
-        <div className="grid grid-cols-3 gap-1 bg-indigo-950/80 p-1 rounded-2xl border border-indigo-700/50 text-[11px] sm:text-xs font-black">
+      <div className="lg:hidden sticky top-[53px] sm:top-[57px] z-20 bg-[#F6F9FA] px-2.5 py-1.5 border-b border-[#D2E4E8]">
+        <div className="grid grid-cols-3 gap-1 bg-[#EDF5F7] p-1 rounded-full border border-[#D2E4E8] text-[11px] sm:text-xs font-black">
           <button
             type="button"
             onClick={() => setMobileTab('stage')}
-            className={`py-2 rounded-xl flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer font-black ${
+            className={`py-2 rounded-full flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer font-black ${
               mobileTab === 'stage'
-                ? 'bg-amber-400 text-indigo-950 shadow-md'
-                : 'text-indigo-200 hover:text-white'
+                ? 'bg-[#0F1E1C] text-white shadow-xs'
+                : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
             }`}
           >
             <Video className="w-3.5 h-3.5 shrink-0" />
@@ -1245,10 +1238,10 @@ export const StudyRoom: React.FC<Props> = ({
               setMobileTab('tools');
               setActiveTab('tools');
             }}
-            className={`py-2 rounded-xl flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer font-black ${
+            className={`py-2 rounded-full flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer font-black ${
               mobileTab === 'tools'
-                ? 'bg-amber-400 text-indigo-950 shadow-md'
-                : 'text-indigo-200 hover:text-white'
+                ? 'bg-[#0F1E1C] text-white shadow-xs'
+                : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
@@ -1261,16 +1254,16 @@ export const StudyRoom: React.FC<Props> = ({
               setMobileTab('chat');
               setActiveTab('chat');
             }}
-            className={`py-2 rounded-xl flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer font-black relative ${
+            className={`py-2 rounded-full flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer font-black relative ${
               mobileTab === 'chat'
-                ? 'bg-amber-400 text-indigo-950 shadow-md'
-                : 'text-indigo-200 hover:text-white'
+                ? 'bg-[#0F1E1C] text-white shadow-xs'
+                : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Obrolan</span>
             {messages.length > 1 && (
-              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-[#00785D] animate-pulse shrink-0" />
             )}
           </button>
         </div>
@@ -1291,13 +1284,13 @@ export const StudyRoom: React.FC<Props> = ({
                 studyAudio.resumeContext();
                 setIsAutoplayBlocked(false);
               }}
-              className="px-4 py-3 rounded-2xl bg-amber-400 text-indigo-950 font-black flex items-center justify-between shadow-xl cursor-pointer hover:bg-amber-300 transition-all border-2 border-amber-300 animate-pulse"
+              className="px-4 py-3 rounded-2xl bg-[#FDC323] text-[#0F1E1C] font-black flex items-center justify-between shadow-sm cursor-pointer hover:bg-[#EBB215] transition-all border-2 border-[#0F1E1C] animate-pulse"
             >
               <div className="flex items-center gap-2 text-xs sm:text-sm">
-                <Volume2 className="w-5 h-5 shrink-0 text-indigo-950" />
+                <Volume2 className="w-5 h-5 shrink-0 text-[#0F1E1C]" />
                 <span>Klik di sini untuk Mengaktifkan Suara & Video Partner!</span>
               </div>
-              <span className="px-3 py-1 rounded-xl bg-indigo-950 text-amber-300 text-xs font-black shrink-0">
+              <span className="px-3 py-1 rounded-full bg-[#0F1E1C] text-[#FDC323] text-xs font-black shrink-0">
                 Aktifkan
               </span>
             </div>
@@ -1308,7 +1301,7 @@ export const StudyRoom: React.FC<Props> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             
             {/* 1. Partner Video / Avatar Card */}
-            <div className="bg-indigo-950 rounded-3xl p-2.5 shadow-xl border-4 border-indigo-400/30 aspect-video sm:aspect-[4/3] relative flex flex-col justify-between overflow-hidden">
+            <div className="bg-[#0F1E1C] rounded-[28px] sm:rounded-[36px] p-2.5 shadow-sm border-2 border-[#0F1E1C] aspect-video sm:aspect-[4/3] relative flex flex-col justify-between overflow-hidden">
               {/* Dedicated Remote Audio element for WebRTC audio playback */}
               <audio ref={remoteAudioRef} autoPlay playsInline />
 
@@ -1324,29 +1317,29 @@ export const StudyRoom: React.FC<Props> = ({
                     remoteVideoRef.current?.play().catch(() => {});
                   }
                 }}
-                className="absolute inset-0 w-full h-full object-cover z-0 rounded-2xl bg-slate-950"
+                className="absolute inset-0 w-full h-full object-cover z-0 rounded-[22px] sm:rounded-[30px] bg-[#0c100b]"
               />
 
               {/* Virtual Study Avatar (shown on top at z-10 when video is off) */}
               {!mediaState.partnerVideoEnabled && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-b from-indigo-900 via-indigo-950 to-indigo-900 z-10 rounded-2xl text-white">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-400 border-2 border-amber-300 text-indigo-950 flex items-center justify-center text-2xl font-black shadow-lg mb-2">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-[#0F1E1C] z-10 rounded-[22px] sm:rounded-[30px] text-white">
+                  <div className="w-16 h-16 rounded-2xl bg-[#FDC323] border-2 border-[#0F1E1C] text-[#0F1E1C] flex items-center justify-center text-2xl font-black shadow-md mb-2">
                     {roomData.partner.displayName.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="text-center space-y-0.5 max-w-[90%]">
                     <h3 className="text-sm font-black text-white truncate">{roomData.partner.displayName}</h3>
-                    <p className="text-xs text-amber-300 font-bold truncate">{roomData.partner.major}</p>
-                    <p className="text-[11px] text-indigo-200 italic truncate">&ldquo;{roomData.partner.interest}&rdquo;</p>
+                    <p className="text-xs text-[#FDC323] font-bold truncate">{roomData.partner.major}</p>
+                    <p className="text-[11px] text-[#539BA9] italic truncate">&ldquo;{roomData.partner.interest}&rdquo;</p>
                   </div>
                 </div>
               )}
 
               {/* Card Top Badges */}
               <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-950/80 backdrop-blur-md border border-indigo-700/50 text-[11px] text-white font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0F1E1C]/85 backdrop-blur-md border border-[#172B28] text-[11px] text-white font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#00785D] animate-pulse" />
                   <span>{roomData.partner.displayName}</span>
-                  <span className="text-[10px] text-indigo-200">({roomData.partner.gender === 'male' ? 'L' : roomData.partner.gender === 'female' ? 'P' : 'Anonim'})</span>
+                  <span className="text-[10px] text-[#539BA9]">({roomData.partner.gender === 'male' ? 'L' : roomData.partner.gender === 'female' ? 'P' : 'Anonim'})</span>
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -1363,18 +1356,18 @@ export const StudyRoom: React.FC<Props> = ({
                         remoteAudioRef.current.play().catch(() => setIsAutoplayBlocked(true));
                       }
                     }}
-                    className="p-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 text-amber-300 hover:text-amber-200 border border-indigo-700/50 text-xs transition-colors cursor-pointer"
+                    className="p-1.5 rounded-full bg-[#0F1E1C]/85 hover:bg-[#172B28] text-[#FDC323] border border-[#172B28] text-xs transition-colors cursor-pointer"
                     title="Muat Ulang / Refresh Kamera Partner"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </button>
 
                   {mediaState.partnerAudioEnabled ? (
-                    <span className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs">
+                    <span className="p-1.5 rounded-full bg-[#00785D]/20 text-[#FDC323] border border-[#00785D]/40 text-xs">
                       <Mic className="w-3.5 h-3.5" />
                     </span>
                   ) : (
-                    <span className="p-1 rounded-lg bg-indigo-950/80 text-indigo-300 text-xs border border-indigo-700/50">
+                    <span className="p-1.5 rounded-full bg-[#0F1E1C]/85 text-[#4A7A79] text-xs border border-[#172B28]">
                       <MicOff className="w-3.5 h-3.5" />
                     </span>
                   )}
@@ -1383,15 +1376,15 @@ export const StudyRoom: React.FC<Props> = ({
 
               {/* Card Bottom: Partner Goal Badge */}
               <div className="relative z-10 mt-auto">
-                <div className="px-3 py-1.5 rounded-2xl bg-indigo-950/90 backdrop-blur-md border border-indigo-700/50 text-[11px] text-white flex items-center gap-2">
-                  <Target className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="truncate font-medium">Target: <strong className="text-amber-300 font-bold">{roomData.partner.currentGoal}</strong></span>
+                <div className="px-3 py-1.5 rounded-2xl bg-[#0F1E1C]/90 backdrop-blur-md border border-[#172B28] text-[11px] text-white flex items-center gap-2">
+                  <Target className="w-3.5 h-3.5 text-[#FDC323] shrink-0" />
+                  <span className="truncate font-medium">Target: <strong className="text-[#FDC323] font-bold">{roomData.partner.currentGoal}</strong></span>
                 </div>
               </div>
             </div>
 
             {/* 2. My Video / Avatar Card */}
-            <div className="bg-indigo-950 rounded-3xl p-2.5 shadow-xl border-4 border-indigo-400/30 aspect-video sm:aspect-[4/3] relative flex flex-col justify-between overflow-hidden">
+            <div className="bg-[#0F1E1C] rounded-[28px] sm:rounded-[36px] p-2.5 shadow-sm border-2 border-[#0F1E1C] aspect-video sm:aspect-[4/3] relative flex flex-col justify-between overflow-hidden">
               {/* Local Video element with Mirroring & Background Blur */}
               <video
                 ref={localVideoRef}
@@ -1402,54 +1395,50 @@ export const StudyRoom: React.FC<Props> = ({
                   filter: cameraBlur ? 'blur(16px)' : 'none',
                   transform: cameraMirror ? 'scaleX(-1)' : 'none'
                 }}
-                className={`absolute inset-0 w-full h-full object-cover z-0 rounded-2xl bg-slate-950 transition-all duration-300 ${
+                className={`absolute inset-0 w-full h-full object-cover z-0 rounded-[22px] sm:rounded-[30px] bg-[#0c100b] transition-all duration-300 ${
                   (mediaState.videoEnabled || mediaState.screenSharing) ? 'block' : 'hidden'
                 }`}
               />
 
               {/* Portrait Focus Edge Overlay when Blur is active */}
               {cameraBlur && mediaState.videoEnabled && (
-                <div className="absolute inset-0 pointer-events-none rounded-2xl z-[5] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border-2 border-amber-400/40">
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-amber-400/90 text-indigo-950 text-[10px] font-black flex items-center gap-1 shadow-sm backdrop-blur-sm">
-                    <Focus className="w-3 h-3 text-indigo-950" />
-                    <span>Latar Belakang Blur Aktif</span>
+                <div className="absolute inset-0 pointer-events-none rounded-[22px] sm:rounded-[30px] z-[5] shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border-2 border-[#FDC323]/50">
+                  <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-[#FDC323] text-[#0F1E1C] text-[10px] font-black flex items-center gap-1 shadow-sm backdrop-blur-sm">
+                    <Focus className="w-3 h-3 text-[#0F1E1C]" />
+                    <span>Latar Blur Aktif</span>
                   </div>
                 </div>
               )}
 
-
-
-
               {/* Virtual Study Avatar for User */}
               {!mediaState.videoEnabled && !mediaState.screenSharing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-b from-indigo-950 via-indigo-900 to-indigo-950 z-0 rounded-2xl text-white">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${myProfile.avatarColor || 'from-indigo-600 to-blue-600'} border-2 border-white/40 text-white flex items-center justify-center text-2xl font-black shadow-lg mb-2`}>
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-[#0F1E1C] z-0 rounded-[22px] sm:rounded-[30px] text-white">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${myProfile.avatarColor || 'from-[#FDC323] to-[#00785D]'} border-2 border-[#0F1E1C] text-[#0F1E1C] flex items-center justify-center text-2xl font-black shadow-md mb-2`}>
                     {myProfile.displayName.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="text-center space-y-0.5 max-w-[90%]">
                     <h3 className="text-sm font-black text-white truncate">{myProfile.displayName} (Saya)</h3>
-                    <p className="text-xs text-indigo-200 font-bold truncate">{myProfile.major}</p>
-                    <p className="text-[11px] text-amber-300 font-bold italic truncate">&ldquo;{myProfile.currentGoal}&rdquo;</p>
+                    <p className="text-xs text-[#539BA9] font-bold truncate">{myProfile.major}</p>
+                    <p className="text-[11px] text-[#FDC323] font-bold italic truncate">&ldquo;{myProfile.currentGoal}&rdquo;</p>
                   </div>
                 </div>
               )}
 
-
               {/* Card Top Badges */}
               <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-950/80 backdrop-blur-md border border-indigo-700/50 text-[11px] text-white font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0F1E1C]/85 backdrop-blur-md border border-[#172B28] text-[11px] text-white font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#00785D]" />
                   <span>{myProfile.displayName} (Anda)</span>
                 </div>
 
                 <div className="flex items-center gap-1">
                   {mediaState.audioEnabled ? (
-                    <span className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs flex items-center gap-1">
+                    <span className="p-1.5 rounded-full bg-[#00785D]/20 text-[#FDC323] border border-[#00785D]/40 text-xs flex items-center gap-1">
                       <Mic className="w-3.5 h-3.5" />
-                      {myVolumeLevel > 15 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
+                      {myVolumeLevel > 15 && <span className="w-1.5 h-1.5 rounded-full bg-[#FDC323] animate-ping" />}
                     </span>
                   ) : (
-                    <span className="p-1 rounded-lg bg-indigo-950/80 text-indigo-300 text-xs border border-indigo-700/50">
+                    <span className="p-1.5 rounded-full bg-[#0F1E1C]/85 text-[#4A7A79] text-xs border border-[#172B28]">
                       <MicOff className="w-3.5 h-3.5" />
                     </span>
                   )}
@@ -1458,9 +1447,9 @@ export const StudyRoom: React.FC<Props> = ({
 
               {/* Card Bottom: Local Goal Badge */}
               <div className="relative z-10 mt-auto">
-                <div className="px-3 py-1.5 rounded-2xl bg-indigo-950/90 backdrop-blur-md border border-indigo-700/50 text-[11px] text-white flex items-center gap-2">
-                  <Target className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="truncate font-medium">Target: <strong className="text-emerald-300 font-bold">{myProfile.currentGoal}</strong></span>
+                <div className="px-3 py-1.5 rounded-2xl bg-[#0F1E1C]/90 backdrop-blur-md border border-[#172B28] text-[11px] text-white flex items-center gap-2">
+                  <Target className="w-3.5 h-3.5 text-[#FDC323] shrink-0" />
+                  <span className="truncate font-medium">Target: <strong className="text-[#FDC323] font-bold">{myProfile.currentGoal}</strong></span>
                 </div>
               </div>
             </div>
@@ -1468,7 +1457,8 @@ export const StudyRoom: React.FC<Props> = ({
           </div>
 
           {/* Media Controls Bar & Quick Reactions Container */}
-          <div className="bg-white rounded-3xl p-3 sm:p-4 flex flex-col items-center justify-between gap-2.5 shadow-xl border-4 border-indigo-400/20 relative z-20">
+          {/* Media Controls Bar & Quick Reactions Container */}
+          <div className="bg-white rounded-[28px] sm:rounded-[36px] p-3 sm:p-4 flex flex-col items-center justify-between gap-2.5 shadow-sm border-2 border-[#D2E4E8] relative z-20">
             
             {/* Top Row: AV Controls Section (Kamera, Blur, Mic, Bagi Layar) */}
             <div className="flex items-center gap-1.5 sm:gap-2 w-full justify-between sm:justify-center overflow-x-auto no-scrollbar py-0.5 shrink-0 relative z-20">
@@ -1476,17 +1466,17 @@ export const StudyRoom: React.FC<Props> = ({
                 id="btn-toggle-camera"
                 type="button"
                 onClick={handleToggleCamera}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
+                className={`flex-1 sm:flex-none px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
                   mediaState.videoEnabled
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-200'
+                    ? 'bg-[#0F1E1C] text-white'
+                    : 'bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] border border-[#D2E4E8]'
                 }`}
                 title="Nyalakan / Matikan Kamera (V)"
               >
-                {mediaState.videoEnabled ? <Video className="w-4 h-4 shrink-0" /> : <VideoOff className="w-4 h-4 text-slate-400 shrink-0" />}
+                {mediaState.videoEnabled ? <Video className="w-4 h-4 shrink-0 text-[#FDC323]" /> : <VideoOff className="w-4 h-4 text-[#4A7A79] shrink-0" />}
                 <span className="text-[11px] sm:text-xs whitespace-nowrap">{mediaState.videoEnabled ? 'Kamera On' : 'Kamera Off'}</span>
                 <kbd className={`hidden sm:inline-block px-1.5 py-0.2 rounded font-mono font-black text-[10px] ${
-                  mediaState.videoEnabled ? 'bg-indigo-700 text-amber-300' : 'bg-slate-200 text-slate-600'
+                  mediaState.videoEnabled ? 'bg-[#172B28] text-[#FDC323]' : 'bg-[#D2E4E8] text-[#1D4D4A]'
                 }`}>
                   V
                 </kbd>
@@ -1495,10 +1485,10 @@ export const StudyRoom: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => setCameraBlur((prev) => !prev)}
-                className={`px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
+                className={`px-3 py-2 sm:py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
                   cameraBlur
-                    ? 'bg-amber-400 text-indigo-950 border-2 border-amber-300'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-200'
+                    ? 'bg-[#FDC323] text-[#0F1E1C] border-2 border-[#0F1E1C]'
+                    : 'bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] border border-[#D2E4E8]'
                 }`}
                 title="Aktifkan / Matikan Efek Blur Latar Kamera"
               >
@@ -1509,10 +1499,10 @@ export const StudyRoom: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => setCameraMirror((prev) => !prev)}
-                className={`px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
+                className={`px-3 py-2 sm:py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
                   cameraMirror
-                    ? 'bg-indigo-100 text-indigo-900 border-2 border-indigo-300'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-200'
+                    ? 'bg-[#E7F8FC] text-[#0F1E1C] border-2 border-[#99DDE9]'
+                    : 'bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] border border-[#D2E4E8]'
                 }`}
                 title="Aktifkan / Matikan Mode Cermin Kamera (Mirror)"
               >
@@ -1520,22 +1510,21 @@ export const StudyRoom: React.FC<Props> = ({
                 <span className="whitespace-nowrap">{cameraMirror ? 'Cermin On' : 'Cermin Off'}</span>
               </button>
 
-
               <button
                 id="btn-toggle-mic"
                 type="button"
                 onClick={handleToggleMic}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
+                className={`flex-1 sm:flex-none px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
                   mediaState.audioEnabled
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-200'
+                    ? 'bg-[#0F1E1C] text-white'
+                    : 'bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] border border-[#D2E4E8]'
                 }`}
                 title="Mute / Unmute Mikrofon (Space)"
               >
-                {mediaState.audioEnabled ? <Mic className="w-4 h-4 shrink-0" /> : <MicOff className="w-4 h-4 text-slate-400 shrink-0" />}
+                {mediaState.audioEnabled ? <Mic className="w-4 h-4 shrink-0 text-[#FDC323]" /> : <MicOff className="w-4 h-4 text-[#4A7A79] shrink-0" />}
                 <span className="text-[11px] sm:text-xs whitespace-nowrap">{mediaState.audioEnabled ? 'Mic On' : 'Mic Off'}</span>
                 <kbd className={`hidden sm:inline-block px-1.5 py-0.2 rounded font-mono font-black text-[10px] ${
-                  mediaState.audioEnabled ? 'bg-indigo-700 text-amber-300' : 'bg-slate-200 text-slate-600'
+                  mediaState.audioEnabled ? 'bg-[#172B28] text-[#FDC323]' : 'bg-[#D2E4E8] text-[#1D4D4A]'
                 }`}>
                   Space
                 </kbd>
@@ -1545,10 +1534,10 @@ export const StudyRoom: React.FC<Props> = ({
                 id="btn-toggle-screenshare"
                 type="button"
                 onClick={handleToggleScreenShare}
-                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0 ${
+                className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs shrink-0 ${
                   mediaState.screenSharing
-                    ? 'bg-amber-400 text-indigo-950 border-2 border-amber-300'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-200'
+                    ? 'bg-[#FDC323] text-[#0F1E1C] border-2 border-[#0F1E1C]'
+                    : 'bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] border border-[#D2E4E8]'
                 }`}
               >
                 <Monitor className="w-4 h-4 shrink-0" />
@@ -1556,9 +1545,9 @@ export const StudyRoom: React.FC<Props> = ({
               </button>
             </div>
 
-            {/* Bottom Row: Dedicated Quick Reactions Bar (Placed Directly Below AV Controls) */}
-            <div className="w-full flex items-center justify-center gap-1.5 bg-indigo-50/90 px-3 py-1.5 rounded-2xl border border-indigo-100 overflow-x-auto no-scrollbar shrink-0 relative z-10">
-              <span className="text-[11px] text-indigo-800 px-1 font-black uppercase tracking-wider shrink-0">Reaksi:</span>
+            {/* Bottom Row: Dedicated Quick Reactions Bar */}
+            <div className="w-full flex items-center justify-center gap-1.5 bg-[#F4F8F9] px-3 py-1.5 rounded-2xl border border-[#D2E4E8] overflow-x-auto no-scrollbar shrink-0 relative z-10">
+              <span className="text-[11px] text-[#3A6B6A] px-1 font-black uppercase tracking-wider shrink-0">Reaksi:</span>
               {QUICK_REACTIONS.map((item, idx) => {
                 const IconComp = item.icon;
                 return (
@@ -1566,11 +1555,11 @@ export const StudyRoom: React.FC<Props> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleSendReaction(item.id)}
-                    className="group relative p-2 rounded-xl hover:bg-indigo-100 flex items-center justify-center transition-transform active:scale-125 cursor-pointer shrink-0"
+                    className="group relative p-2 rounded-xl hover:bg-[#EDF5F7] flex items-center justify-center transition-transform active:scale-125 cursor-pointer shrink-0"
                     title={`Kirim ${item.name}`}
                   >
-                    <IconComp className="w-4 h-4 text-indigo-700 group-hover:scale-110 transition-transform" />
-                    <span className="absolute -bottom-1 -right-0.5 text-[8px] font-mono font-bold text-slate-400 group-hover:text-indigo-600 hidden sm:inline">
+                    <IconComp className="w-4 h-4 text-[#0F1E1C] group-hover:scale-110 transition-transform" />
+                    <span className="absolute -bottom-1 -right-0.5 text-[8px] font-mono font-bold text-[#539BA9] group-hover:text-[#0F1E1C] hidden sm:inline">
                       {idx + 1}
                     </span>
                   </button>
@@ -1580,30 +1569,27 @@ export const StudyRoom: React.FC<Props> = ({
 
           </div>
 
-
-
-
-          {/* Synchronized Pomodoro Widget in Vibrant Palette */}
-          <div className="bg-white rounded-3xl p-3.5 sm:p-5 shadow-xl border-4 border-indigo-400/20 space-y-3.5 text-slate-900">
+          {/* Synchronized Pomodoro Widget in Clean Flat Style */}
+          <div className="bg-white rounded-[28px] sm:rounded-[36px] p-4 sm:p-5 shadow-sm border-2 border-[#D2E4E8] space-y-3.5 text-[#0F1E1C]">
             {/* Header: Title, Badge, & Mode Switcher */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b-2 border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#EDF5F7] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-400 border border-amber-300 flex items-center justify-center text-indigo-950 font-black text-sm shadow-sm shrink-0">
+                <div className="w-8 h-8 rounded-2xl bg-[#E7F8FC] border border-[#99DDE9] flex items-center justify-center text-[#0F1E1C] font-black text-sm shadow-xs shrink-0">
                   🍅
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Timer Pomodoro</h4>
-                  <p className="text-[10px] text-slate-500 font-semibold">Sinkron otomatis dengan partner</p>
+                  <h4 className="text-xs font-black text-[#0F1E1C] uppercase tracking-wider">Timer Pomodoro</h4>
+                  <p className="text-[10px] text-[#3A6B6A] font-semibold">Sinkron otomatis dengan partner</p>
                 </div>
               </div>
 
               {/* Mode Selectors */}
-              <div className="flex items-center gap-1 bg-indigo-50 p-1 rounded-2xl border-2 border-indigo-100 text-[11px] w-full sm:w-auto">
+              <div className="flex items-center gap-1 bg-[#EDF5F7] p-1 rounded-full border border-[#D2E4E8] text-[11px] w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => handlePomodoroChangeMode('focus')}
-                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer text-center ${
-                    pomodoro.mode === 'focus' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-full font-black transition-all cursor-pointer text-center ${
+                    pomodoro.mode === 'focus' ? 'bg-[#0F1E1C] text-white shadow-xs' : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
                   }`}
                 >
                   Fokus (25m)
@@ -1611,8 +1597,8 @@ export const StudyRoom: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => handlePomodoroChangeMode('short_break')}
-                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer text-center ${
-                    pomodoro.mode === 'short_break' ? 'bg-amber-400 text-indigo-950 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-full font-black transition-all cursor-pointer text-center ${
+                    pomodoro.mode === 'short_break' ? 'bg-[#0F1E1C] text-[#FDC323] shadow-xs' : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
                   }`}
                 >
                   Rehat (5m)
@@ -1625,19 +1611,19 @@ export const StudyRoom: React.FC<Props> = ({
               
               {/* Left: Timer Display & Status Badge */}
               <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-indigo-950">
+                <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-[#0F1E1C]">
                   {formatSeconds(pomodoro.timeLeft)}
                 </div>
                 <div className="text-left space-y-0.5">
                   {pomodoro.isRunning ? (
-                    <span className="text-indigo-600 flex items-center gap-1 font-black text-xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                    <span className="text-[#00785D] flex items-center gap-1 font-black text-xs">
+                      <span className="w-2 h-2 rounded-full bg-[#00785D] animate-ping shrink-0" />
                       Berjalan Bersama
                     </span>
                   ) : (
-                    <span className="text-amber-600 font-black text-xs">Dijeda</span>
+                    <span className="text-[#539BA9] font-black text-xs">Dijeda</span>
                   )}
-                  <div className="text-[10px] text-slate-400 font-bold">{pomodoro.sessionsCompleted} putaran selesai</div>
+                  <div className="text-[10px] text-[#4A7A79] font-bold">{pomodoro.sessionsCompleted} putaran selesai</div>
                 </div>
               </div>
 
@@ -1647,17 +1633,17 @@ export const StudyRoom: React.FC<Props> = ({
                   id="btn-pomodoro-play"
                   type="button"
                   onClick={handlePomodoroPlayPause}
-                  className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95 ${
+                  className={`flex-1 sm:flex-none px-5 py-3 rounded-full font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 ${
                     pomodoro.isRunning
-                      ? 'bg-amber-400 hover:bg-amber-300 text-indigo-950 border-2 border-amber-300'
-                      : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)]'
+                      ? 'bg-[#0F1E1C] text-[#FDC323] border-2 border-[#0F1E1C]'
+                      : 'bg-[#FDC323] hover:bg-[#EBB215] text-[#0F1E1C] border-2 border-[#0F1E1C] shadow-[0_3px_0_#0F1E1C] active:translate-y-0.5 active:shadow-none'
                   }`}
                   title="Mulai / Jeda Pomodoro (P)"
                 >
                   {pomodoro.isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   <span>{pomodoro.isRunning ? 'Jeda' : 'Mulai Fokus'}</span>
                   <kbd className={`hidden sm:inline-block px-1.5 py-0.2 rounded font-mono font-black text-[10px] ${
-                    pomodoro.isRunning ? 'bg-amber-500/40 text-indigo-950' : 'bg-indigo-700 text-amber-300'
+                    pomodoro.isRunning ? 'bg-[#172B28] text-[#FDC323]' : 'bg-[#0F1E1C] text-white'
                   }`}>
                     P
                   </kbd>
@@ -1667,12 +1653,12 @@ export const StudyRoom: React.FC<Props> = ({
                   id="btn-pomodoro-reset"
                   type="button"
                   onClick={handlePomodoroReset}
-                  className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 border-2 border-slate-200 transition-all cursor-pointer active:scale-95 shrink-0"
+                  className="px-4 py-3 rounded-full bg-white hover:bg-[#F6F9FA] text-[#1D4D4A] font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 border-2 border-[#D2E4E8] transition-all cursor-pointer active:scale-95 shrink-0"
                   title="Reset Timer (R)"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span className="hidden sm:inline">Reset</span>
-                  <kbd className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-slate-200 text-slate-600 font-mono font-black text-[10px]">
+                  <kbd className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-[#EDF5F7] text-[#4A7A79] font-mono font-black text-[10px]">
                     R
                   </kbd>
                 </button>
@@ -1689,23 +1675,23 @@ export const StudyRoom: React.FC<Props> = ({
 
           
           {/* Tabs Navigator: Study Tools vs Chat (Desktop only; mobile uses top mobileTab bar) */}
-          <div className="hidden lg:flex bg-white rounded-3xl p-1.5 items-center justify-between text-xs font-bold shadow-xl border-4 border-indigo-400/20">
+          <div className="hidden lg:flex bg-[#EDF5F7] rounded-full p-1 items-center justify-between text-xs font-bold border border-[#D2E4E8]">
 
-            <div className="grid grid-cols-2 gap-1.5 w-full">
+            <div className="grid grid-cols-2 gap-1 w-full">
               <button
                 type="button"
                 onClick={() => setActiveTab('tools')}
-                className={`py-2.5 px-3 rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer font-black ${
+                className={`py-2 px-3 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer font-black ${
                   activeTab === 'tools'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-[#0F1E1C] text-white shadow-xs'
+                    : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
                 }`}
                 title="Buka Target & Catatan (T)"
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 text-[#FDC323]" />
                 <span>Target & Catatan</span>
                 <kbd className={`px-1.5 py-0.2 rounded font-mono font-black text-[10px] ${
-                  activeTab === 'tools' ? 'bg-indigo-700 text-amber-300' : 'bg-slate-100 text-slate-400'
+                  activeTab === 'tools' ? 'bg-[#172B28] text-[#FDC323]' : 'bg-[#D2E4E8] text-[#1D4D4A]'
                 }`}>
                   T
                 </kbd>
@@ -1714,22 +1700,22 @@ export const StudyRoom: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('chat')}
-                className={`py-2.5 px-3 rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer font-black relative ${
+                className={`py-2 px-3 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer font-black relative ${
                   activeTab === 'chat'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-[#0F1E1C] text-white shadow-xs'
+                    : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
                 }`}
                 title="Buka Obrolan Sesi (C)"
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-4 h-4 text-[#FDC323]" />
                 <span>Obrolan Sesi</span>
                 <kbd className={`px-1.5 py-0.2 rounded font-mono font-black text-[10px] ${
-                  activeTab === 'chat' ? 'bg-indigo-700 text-amber-300' : 'bg-slate-100 text-slate-400'
+                  activeTab === 'chat' ? 'bg-[#172B28] text-[#FDC323]' : 'bg-[#D2E4E8] text-[#1D4D4A]'
                 }`}>
                   C
                 </kbd>
                 {messages.length > 1 && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute top-2.5 right-4 shadow-sm" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#00785D] absolute top-2 right-4 shadow-xs" />
                 )}
               </button>
             </div>
@@ -1740,24 +1726,24 @@ export const StudyRoom: React.FC<Props> = ({
             <div className="space-y-3 sm:space-y-4">
               
               {/* Mobile Pomodoro Timer Card (Visible on mobile screens when inside Tools tab) */}
-              <div className="lg:hidden bg-white rounded-3xl p-3.5 shadow-xl border-4 border-indigo-400/20 space-y-3 text-slate-900">
-                <div className="flex items-center justify-between gap-2 border-b-2 border-slate-100 pb-2.5">
+              <div className="lg:hidden bg-white rounded-[28px] p-4 shadow-sm border-2 border-[#D2E4E8] space-y-3 text-[#0F1E1C]">
+                <div className="flex items-center justify-between gap-2 border-b border-[#EDF5F7] pb-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-amber-400 border border-amber-300 flex items-center justify-center text-indigo-950 font-black text-xs shadow-sm shrink-0">
+                    <div className="w-7 h-7 rounded-xl bg-[#E7F8FC] border border-[#99DDE9] flex items-center justify-center text-[#0F1E1C] font-black text-xs shadow-xs shrink-0">
                       🍅
                     </div>
                     <div>
-                      <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Timer Pomodoro</h4>
-                      <p className="text-[10px] text-slate-500 font-semibold">Sinkron dengan partner</p>
+                      <h4 className="text-[11px] font-black text-[#0F1E1C] uppercase tracking-wider">Timer Pomodoro</h4>
+                      <p className="text-[10px] text-[#3A6B6A] font-semibold">Sinkron dengan partner</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-indigo-50 p-1 rounded-xl border border-indigo-100 text-[10px]">
+                  <div className="flex items-center gap-1 bg-[#EDF5F7] p-1 rounded-full border border-[#D2E4E8] text-[10px]">
                     <button
                       type="button"
                       onClick={() => handlePomodoroChangeMode('focus')}
-                      className={`px-2 py-1 rounded-lg font-black transition-all cursor-pointer ${
-                        pomodoro.mode === 'focus' ? 'bg-indigo-600 text-white' : 'text-slate-600'
+                      className={`px-2.5 py-1 rounded-full font-black transition-all cursor-pointer ${
+                        pomodoro.mode === 'focus' ? 'bg-[#0F1E1C] text-white' : 'text-[#3A6B6A]'
                       }`}
                     >
                       Fokus (25m)
@@ -1765,8 +1751,8 @@ export const StudyRoom: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={() => handlePomodoroChangeMode('short_break')}
-                      className={`px-2 py-1 rounded-lg font-black transition-all cursor-pointer ${
-                        pomodoro.mode === 'short_break' ? 'bg-amber-400 text-indigo-950' : 'text-slate-600'
+                      className={`px-2.5 py-1 rounded-full font-black transition-all cursor-pointer ${
+                        pomodoro.mode === 'short_break' ? 'bg-[#0F1E1C] text-[#FDC323]' : 'text-[#3A6B6A]'
                       }`}
                     >
                       Rehat (5m)
@@ -1776,11 +1762,11 @@ export const StudyRoom: React.FC<Props> = ({
 
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl font-black font-mono tracking-tight text-indigo-950">
+                    <span className="text-3xl font-black font-mono tracking-tight text-[#0F1E1C]">
                       {formatSeconds(pomodoro.timeLeft)}
                     </span>
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                      pomodoro.isRunning ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                      pomodoro.isRunning ? 'bg-[#E7F8FC] text-[#003D30] border border-[#99DDE9]' : 'bg-[#EDF5F7] text-[#3A6B6A] border border-[#D2E4E8]'
                     }`}>
                       {pomodoro.isRunning ? 'Berjalan' : 'Dijeda'}
                     </span>
@@ -1790,8 +1776,8 @@ export const StudyRoom: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={handlePomodoroPlayPause}
-                      className={`px-3 py-1.5 rounded-xl font-black text-xs flex items-center gap-1 shadow-sm cursor-pointer ${
-                        pomodoro.isRunning ? 'bg-amber-400 text-indigo-950' : 'bg-indigo-600 text-white'
+                      className={`px-3.5 py-1.5 rounded-full font-black text-xs flex items-center gap-1 shadow-xs cursor-pointer ${
+                        pomodoro.isRunning ? 'bg-[#0F1E1C] text-[#FDC323]' : 'bg-[#FDC323] text-[#0F1E1C] border border-[#0F1E1C]/20'
                       }`}
                     >
                       {pomodoro.isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -1800,7 +1786,7 @@ export const StudyRoom: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={handlePomodoroReset}
-                      className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer border border-slate-200"
+                      className="p-1.5 rounded-full bg-white hover:bg-[#F6F9FA] text-[#1D4D4A] cursor-pointer border border-[#D2E4E8]"
                       title="Reset Timer"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -1810,14 +1796,14 @@ export const StudyRoom: React.FC<Props> = ({
               </div>
 
               {/* Tool Selector Pill */}
-              <div className="flex items-center gap-2 border-b border-indigo-400/30 pb-2 text-xs">
+              <div className="flex items-center gap-2 bg-[#EDF5F7] p-1 rounded-full border border-[#D2E4E8] text-xs">
                 <button
                   type="button"
                   onClick={() => setActiveTool('todos')}
-                  className={`px-3.5 py-1.5 rounded-2xl font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`flex-1 py-1.5 px-3 rounded-full font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTool === 'todos'
-                      ? 'bg-white text-indigo-900 shadow-md border-2 border-amber-300'
-                      : 'text-indigo-100 hover:text-white font-bold'
+                      ? 'bg-[#0F1E1C] text-white shadow-xs'
+                      : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
                   }`}
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
@@ -1827,10 +1813,10 @@ export const StudyRoom: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTool('scratchpad')}
-                  className={`px-3.5 py-1.5 rounded-2xl font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`flex-1 py-1.5 px-3 rounded-full font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTool === 'scratchpad'
-                      ? 'bg-white text-indigo-900 shadow-md border-2 border-amber-300'
-                      : 'text-indigo-100 hover:text-white font-bold'
+                      ? 'bg-[#0F1E1C] text-white shadow-xs'
+                      : 'text-[#3A6B6A] hover:text-[#0F1E1C]'
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
@@ -1840,12 +1826,12 @@ export const StudyRoom: React.FC<Props> = ({
 
               {/* Sub-view: To-do Checklist */}
               {activeTool === 'todos' && (
-                <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-xl border-4 border-indigo-400/20 space-y-3 text-slate-900">
+                <div className="bg-white rounded-[28px] sm:rounded-[36px] p-4 sm:p-5 shadow-sm border-2 border-[#D2E4E8] space-y-3 text-[#0F1E1C]">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                    <h4 className="text-xs font-black text-[#0F1E1C] uppercase tracking-wider">
                       Checklist Target Sesi Ini
                     </h4>
-                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-wider">
+                    <span className="text-[10px] font-black text-[#003D30] bg-[#E7F8FC] px-2 py-0.5 rounded-full border border-[#99DDE9] uppercase tracking-wider">
                       Real-time Sync
                     </span>
                   </div>
@@ -1857,11 +1843,11 @@ export const StudyRoom: React.FC<Props> = ({
                       value={newTodoText}
                       onChange={(e) => setNewTodoText(e.target.value)}
                       placeholder="Tambah target / tugas baru..."
-                      className="flex-1 px-3.5 py-2.5 rounded-2xl bg-slate-50 border-2 border-slate-200 text-xs font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+                      className="flex-1 px-4 py-2.5 rounded-full bg-[#F4F8F9] border-2 border-[#D2E4E8] text-xs font-bold text-[#0F1E1C] placeholder-[#539BA9] focus:outline-none focus:border-[#0F1E1C] focus:bg-white transition-all"
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-md active:scale-95"
+                      className="px-4 py-2.5 rounded-full bg-[#FDC323] hover:bg-[#EBB215] text-[#0F1E1C] font-black text-xs flex items-center gap-1 cursor-pointer transition-all border border-[#0F1E1C]/20 shadow-xs active:scale-95"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Tambah</span>
@@ -1871,7 +1857,7 @@ export const StudyRoom: React.FC<Props> = ({
                   {/* Todos List */}
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {todos.length === 0 ? (
-                      <p className="text-xs text-slate-400 font-medium italic text-center py-4">
+                      <p className="text-xs text-[#539BA9] font-medium italic text-center py-4">
                         Belum ada target tugas. Tambahkan target di atas!
                       </p>
                     ) : (
@@ -1880,8 +1866,8 @@ export const StudyRoom: React.FC<Props> = ({
                           key={todo.id}
                           className={`p-3 rounded-2xl border-2 flex items-center justify-between gap-2 text-xs transition-all ${
                             todo.done
-                              ? 'bg-emerald-50/70 border-emerald-200 text-slate-400'
-                              : 'bg-indigo-50/50 border-indigo-100 text-slate-900 font-bold'
+                              ? 'bg-[#EDF5F7] border-[#D2E4E8] text-[#539BA9]'
+                              : 'bg-[#F4F8F9] border-[#D2E4E8] text-[#0F1E1C] font-bold'
                           }`}
                         >
                           <button
@@ -1890,11 +1876,11 @@ export const StudyRoom: React.FC<Props> = ({
                             className="flex items-center gap-2 text-left flex-1 cursor-pointer"
                           >
                             {todo.done ? (
-                              <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <CheckSquare className="w-4 h-4 text-[#00785D] shrink-0" />
                             ) : (
-                              <Square className="w-4 h-4 text-indigo-600 shrink-0" />
+                              <Square className="w-4 h-4 text-[#0F1E1C] shrink-0" />
                             )}
-                            <span className={todo.done ? 'line-through text-slate-400 font-normal' : 'font-bold'}>
+                            <span className={todo.done ? 'line-through text-[#539BA9] font-normal' : 'font-bold'}>
                               {todo.text}
                             </span>
                           </button>
@@ -1902,7 +1888,7 @@ export const StudyRoom: React.FC<Props> = ({
                           <button
                             type="button"
                             onClick={() => handleDeleteTodo(todo)}
-                            className="text-slate-400 hover:text-rose-600 p-1 transition-colors cursor-pointer"
+                            className="text-[#539BA9] hover:text-rose-600 p-1 transition-colors cursor-pointer"
                             title="Hapus"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1916,13 +1902,13 @@ export const StudyRoom: React.FC<Props> = ({
 
               {/* Sub-view: Shared Scratchpad */}
               {activeTool === 'scratchpad' && (
-                <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-xl border-4 border-indigo-400/20 space-y-2 text-slate-900">
+                <div className="bg-white rounded-[28px] sm:rounded-[36px] p-4 sm:p-5 shadow-sm border-2 border-[#D2E4E8] space-y-2 text-[#0F1E1C]">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider">
-                      <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                    <div className="flex items-center gap-1.5 text-xs font-black text-[#0F1E1C] uppercase tracking-wider">
+                      <FileText className="w-3.5 h-3.5 text-[#00785D]" />
                       <span>Shared Scratchpad / Catatan Bersama</span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium">Tersinkronisasi otomatis</span>
+                    <span className="text-[10px] text-[#4A7A79] font-medium">Tersinkronisasi otomatis</span>
                   </div>
 
                   <textarea
@@ -1930,16 +1916,16 @@ export const StudyRoom: React.FC<Props> = ({
                     value={scratchpad}
                     onChange={handleScratchpadChange}
                     placeholder="Tulis rumus, rangkuman, link referensi, atau pertanyaan di sini..."
-                    className="w-full p-3.5 rounded-2xl bg-slate-50 border-2 border-slate-200 text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white resize-none leading-relaxed transition-all"
+                    className="w-full p-3.5 rounded-2xl bg-[#F4F8F9] border-2 border-[#D2E4E8] text-xs font-mono text-[#0F1E1C] placeholder-[#539BA9] focus:outline-none focus:border-[#0F1E1C] focus:bg-white resize-none leading-relaxed transition-all"
                   />
                 </div>
               )}
 
-              {/* Icebreaker Prompts Pill in Amber theme */}
-              <div className="p-4 rounded-3xl bg-amber-50 border-2 border-amber-200 text-xs space-y-2 text-amber-950 shadow-md">
-                <span className="font-black text-amber-900 flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5 text-amber-700" />
-                  Topik Pembuka Percakapan Relevan:
+              {/* Icebreaker Prompts Pill */}
+              <div className="p-4 rounded-3xl bg-[#E6F5F1] border-2 border-[#D2E4E8] text-xs space-y-2 text-[#0F1E1C] shadow-xs">
+                <span className="font-black text-[#1A3A38] flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-[#E68A00]" />
+                  Topik Pembuka Percakapan:
                 </span>
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   <button
@@ -1948,7 +1934,7 @@ export const StudyRoom: React.FC<Props> = ({
                       setChatInput(`Bagaimana progres topik "${roomData.partner.interest}" sejauh ini?`);
                       setActiveTab('chat');
                     }}
-                    className="text-left p-2.5 rounded-2xl bg-white border border-amber-200 hover:border-amber-400 text-amber-950 font-bold transition-all cursor-pointer truncate shadow-sm active:scale-95"
+                    className="text-left p-2.5 rounded-2xl bg-white border border-[#D2E4E8] hover:border-[#0F1E1C] text-[#0F1E1C] font-bold transition-all cursor-pointer truncate shadow-xs active:scale-95"
                   >
                     💬 &ldquo;Bagaimana progres topik {roomData.partner.interest}?&rdquo;
                   </button>
@@ -1958,7 +1944,7 @@ export const StudyRoom: React.FC<Props> = ({
                       setChatInput(`Mari kita targetkan 25 menit ini tanpa membuka media sosial! 🔥`);
                       setActiveTab('chat');
                     }}
-                    className="text-left p-2.5 rounded-2xl bg-white border border-amber-200 hover:border-amber-400 text-amber-950 font-bold transition-all cursor-pointer truncate shadow-sm active:scale-95"
+                    className="text-left p-2.5 rounded-2xl bg-white border border-[#D2E4E8] hover:border-[#0F1E1C] text-[#0F1E1C] font-bold transition-all cursor-pointer truncate shadow-xs active:scale-95"
                   >
                     🎯 &ldquo;Target 25 menit ini tanpa distraksi sosmed! 🔥&rdquo;
                   </button>
@@ -1970,29 +1956,29 @@ export const StudyRoom: React.FC<Props> = ({
 
           {/* TAB 2: LIVE CHAT SIDEBAR */}
           {activeTab === 'chat' && (
-            <div className="bg-white rounded-3xl flex flex-col h-[65vh] lg:h-[480px] shadow-xl border-4 border-indigo-400/20 overflow-hidden text-slate-900">
+            <div className="bg-white rounded-[28px] sm:rounded-[36px] flex flex-col h-[65vh] lg:h-[480px] shadow-sm border-2 border-[#D2E4E8] overflow-hidden text-[#0F1E1C]">
               
               {/* Chat Header */}
-              <div className="p-3.5 border-b-2 border-slate-100 flex items-center justify-between bg-indigo-50/70">
+              <div className="p-3.5 border-b border-[#EDF5F7] flex items-center justify-between bg-[#F4F8F9]">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs font-black text-slate-900">Obrolan Sesi Belajar</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#00785D] animate-pulse" />
+                  <span className="text-xs font-black text-[#0F1E1C]">Obrolan Sesi Belajar</span>
                 </div>
-                <span className="text-[10px] font-bold text-indigo-600 bg-white px-2 py-0.5 rounded-full border border-indigo-100">
+                <span className="text-[10px] font-bold text-[#1D4D4A] bg-white px-2.5 py-0.5 rounded-full border border-[#D2E4E8]">
                   Stateless Privacy
                 </span>
               </div>
 
               {/* Chat Messages Feed */}
-              <div className="flex-1 p-3.5 overflow-y-auto space-y-3 text-xs bg-slate-50/50">
+              <div className="flex-1 p-3.5 overflow-y-auto space-y-3 text-xs bg-[#F4F8F9]">
                 {messages.map((msg) => {
-                  const isMe = msg.senderId === myProfile.id;
+                  const isMe = msg.senderId === myProfile.id || msg.senderId === socket?.id;
                   const isSystem = msg.type === 'system' || msg.type === 'goal_completed';
 
                   if (isSystem) {
                     return (
                       <div key={msg.id} className="text-center py-1">
-                        <span className="inline-block px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-[11px] text-amber-950 font-bold">
+                        <span className="inline-block px-3 py-1 rounded-full bg-[#E7F8FC] border border-[#99DDE9] text-[11px] text-[#003D30] font-bold">
                           {msg.text}
                         </span>
                       </div>
@@ -2004,14 +1990,14 @@ export const StudyRoom: React.FC<Props> = ({
                       key={msg.id}
                       className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                     >
-                      <span className="text-[10px] text-slate-400 font-bold mb-0.5 px-1">
+                      <span className="text-[10px] text-[#4A7A79] font-bold mb-0.5 px-1">
                         {msg.senderName}
                       </span>
                       <div
-                        className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-xs break-words leading-relaxed shadow-sm ${
+                        className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-xs break-words leading-relaxed shadow-xs ${
                           isMe
-                            ? 'bg-indigo-600 text-white rounded-br-none font-semibold'
-                            : 'bg-white text-slate-900 rounded-bl-none border-2 border-slate-200 font-semibold'
+                            ? 'bg-[#0F1E1C] text-white rounded-br-none font-semibold'
+                            : 'bg-white text-[#0F1E1C] rounded-bl-none border border-[#D2E4E8] font-semibold'
                         }`}
                       >
                         {msg.text}
@@ -2021,8 +2007,8 @@ export const StudyRoom: React.FC<Props> = ({
                 })}
 
                 {isPartnerTyping && (
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 italic px-2 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                  <div className="flex items-center gap-1 text-[11px] text-[#4A7A79] italic px-2 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00785D] animate-pulse" />
                     <span>{roomData.partner.displayName} sedang mengetik...</span>
                   </div>
                 )}
@@ -2030,7 +2016,7 @@ export const StudyRoom: React.FC<Props> = ({
               </div>
 
               {/* Chat Input Bar */}
-              <form onSubmit={handleSendMessage} className="p-3 border-t-2 border-slate-100 bg-white flex gap-2">
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-[#EDF5F7] bg-white flex gap-2">
                 <input
                   id="input-chat-message"
                   type="text"
@@ -2047,12 +2033,12 @@ export const StudyRoom: React.FC<Props> = ({
                     });
                   }}
                   placeholder="Ketik pesan atau pertanyaan..."
-                  className="flex-1 px-3.5 py-2 rounded-2xl bg-slate-50 border-2 border-slate-200 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+                  className="flex-1 px-4 py-2.5 rounded-full bg-[#F4F8F9] border-2 border-[#D2E4E8] text-xs font-semibold text-[#0F1E1C] placeholder-[#539BA9] focus:outline-none focus:border-[#0F1E1C] focus:bg-white transition-all"
                 />
                 <button
                   id="btn-send-chat"
                   type="submit"
-                  className="p-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-colors cursor-pointer shadow-md active:scale-95"
+                  className="p-2.5 rounded-full bg-[#FDC323] hover:bg-[#EBB215] text-[#0F1E1C] font-bold transition-all cursor-pointer shadow-xs active:scale-95 border border-[#0F1E1C]/20"
                   title="Kirim Pesan"
                 >
                   <Send className="w-4 h-4" />
@@ -2068,9 +2054,9 @@ export const StudyRoom: React.FC<Props> = ({
       {/* Keyboard Shortcut HUD Toast Notification */}
       {shortcutToast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-150 pointer-events-none">
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-indigo-950/95 text-white border-2 border-amber-400 shadow-2xl backdrop-blur-md">
-            <span className="text-xs font-black text-amber-300">{shortcutToast.message}</span>
-            <kbd className="px-2 py-0.5 rounded-lg bg-amber-400 text-indigo-950 font-mono font-black text-[10px] shadow-sm uppercase">
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#0F1E1C] text-white border-2 border-[#FDC323] shadow-2xl backdrop-blur-md">
+            <span className="text-xs font-black text-[#FDC323]">{shortcutToast.message}</span>
+            <kbd className="px-2 py-0.5 rounded-full bg-[#FDC323] text-[#0F1E1C] font-mono font-black text-[10px] shadow-xs uppercase">
               {shortcutToast.key}
             </kbd>
           </div>
@@ -2081,29 +2067,29 @@ export const StudyRoom: React.FC<Props> = ({
       {showShortcutsModal && (
         <div 
           id="modal-keyboard-shortcuts"
-          className="fixed inset-0 bg-indigo-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 selection:bg-amber-400 selection:text-indigo-950 font-sans"
+          className="fixed inset-0 bg-[#0F1E1C]/60 backdrop-blur-md z-50 flex items-center justify-center p-4 selection:bg-[#FDC323] selection:text-[#0F1E1C] font-sans"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowShortcutsModal(false);
           }}
         >
-          <div className="max-w-lg w-full bg-white rounded-[32px] p-6 sm:p-7 shadow-2xl border-[8px] border-indigo-400/30 text-slate-900 space-y-5 animate-in fade-in zoom-in duration-200 relative">
+          <div className="max-w-lg w-full bg-white rounded-[32px] sm:rounded-[40px] p-6 sm:p-7 shadow-2xl border-2 border-[#D2E4E8] text-[#0F1E1C] space-y-5 animate-in fade-in zoom-in duration-200 relative">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDF5F7]">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-400 border border-amber-300 flex items-center justify-center text-indigo-950 shadow-sm">
-                  <Keyboard className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-2xl bg-[#E7F8FC] border border-[#99DDE9] flex items-center justify-center text-[#0F1E1C] shadow-xs">
+                  <Keyboard className="w-5 h-5 text-[#00785D]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 leading-tight">Pintasan Keyboard (Hotkeys)</h3>
-                  <p className="text-xs font-medium text-slate-500">Navigasi dan kendalikan sesi belajar lebih cepat</p>
+                  <h3 className="text-lg font-black text-[#0F1E1C] leading-tight">Pintasan Keyboard (Hotkeys)</h3>
+                  <p className="text-xs font-medium text-[#3A6B6A]">Navigasi dan kendalikan sesi belajar lebih cepat</p>
                 </div>
               </div>
               <button
                 id="btn-close-shortcuts-modal"
                 type="button"
                 onClick={() => setShowShortcutsModal(false)}
-                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                className="p-2 rounded-full bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] transition-colors cursor-pointer"
                 title="Tutup [Esc]"
               >
                 <X className="w-4 h-4" />
@@ -2114,55 +2100,55 @@ export const StudyRoom: React.FC<Props> = ({
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-xs">
               {/* Group 1: Media Controls */}
               <div className="space-y-2">
-                <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600">Kontrol Audio & Video</div>
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#00785D]">Kontrol Audio & Video</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">Mute / Unmute Mic</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-amber-400 text-indigo-950 font-mono font-black text-[11px] shadow-sm">Space</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between">
+                    <span className="font-bold text-[#0F1E1C]">Mute / Unmute Mic</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#FDC323] text-[#0F1E1C] font-mono font-black text-[11px] shadow-xs">Space</kbd>
                   </div>
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">Nyalakan/Matikan Kamera</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-200 font-mono font-black text-[11px]">V</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between">
+                    <span className="font-bold text-[#0F1E1C]">Nyalakan/Matikan Kamera</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#EDF5F7] text-[#0F1E1C] border border-[#D2E4E8] font-mono font-black text-[11px]">V</kbd>
                   </div>
                 </div>
               </div>
 
               {/* Group 2: Sesi & Timer */}
               <div className="space-y-2">
-                <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600">Sesi Belajar & Pomodoro</div>
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#00785D]">Sesi Belajar & Pomodoro</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">Mulai / Jeda Pomodoro</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-200 font-mono font-black text-[11px]">P</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between">
+                    <span className="font-bold text-[#0F1E1C]">Mulai / Jeda Pomodoro</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#EDF5F7] text-[#0F1E1C] border border-[#D2E4E8] font-mono font-black text-[11px]">P</kbd>
                   </div>
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">Reset Timer Pomodoro</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-200 font-mono font-black text-[11px]">R</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between">
+                    <span className="font-bold text-[#0F1E1C]">Reset Timer Pomodoro</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#EDF5F7] text-[#0F1E1C] border border-[#D2E4E8] font-mono font-black text-[11px]">R</kbd>
                   </div>
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between sm:col-span-2">
-                    <span className="font-bold text-slate-700">Cari Partner Lain (Skip Match)</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-rose-100 text-rose-950 border border-rose-200 font-mono font-black text-[11px]">Esc</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between sm:col-span-2">
+                    <span className="font-bold text-[#0F1E1C]">Cari Partner Lain (Skip Match)</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#0F1E1C] text-[#FDC323] font-mono font-black text-[11px]">Esc</kbd>
                   </div>
                 </div>
               </div>
 
               {/* Group 3: Navigasi Tab */}
               <div className="space-y-2">
-                <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600">Navigasi Tab & Fitur</div>
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#00785D]">Navigasi Tab & Fitur</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">Buka Tab Obrolan (Chat)</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-200 font-mono font-black text-[11px]">C</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between">
+                    <span className="font-bold text-[#0F1E1C]">Buka Tab Obrolan (Chat)</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#EDF5F7] text-[#0F1E1C] border border-[#D2E4E8] font-mono font-black text-[11px]">C</kbd>
                   </div>
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <span className="font-bold text-slate-700">Buka Target & Catatan</span>
-                    <kbd className="px-2.5 py-1 rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-200 font-mono font-black text-[11px]">T</kbd>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between">
+                    <span className="font-bold text-[#0F1E1C]">Buka Target & Catatan</span>
+                    <kbd className="px-2.5 py-1 rounded-full bg-[#EDF5F7] text-[#0F1E1C] border border-[#D2E4E8] font-mono font-black text-[11px]">T</kbd>
                   </div>
-                  <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between sm:col-span-2">
-                    <span className="font-bold text-slate-700">Buka / Tutup Panduan Ini</span>
+                  <div className="p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8] flex items-center justify-between sm:col-span-2">
+                    <span className="font-bold text-[#0F1E1C]">Buka / Tutup Panduan Ini</span>
                     <div className="flex gap-1">
-                      <kbd className="px-2 py-0.5 rounded-lg bg-amber-400 text-indigo-950 font-mono font-black text-[10px]">?</kbd>
-                      <kbd className="px-2 py-0.5 rounded-lg bg-slate-200 text-slate-800 font-mono font-black text-[10px]">H</kbd>
+                      <kbd className="px-2 py-0.5 rounded-lg bg-[#FDC323] text-[#0F1E1C] font-mono font-black text-[10px]">?</kbd>
+                      <kbd className="px-2 py-0.5 rounded-lg bg-[#EDF5F7] text-[#0F1E1C] font-mono font-black text-[10px]">H</kbd>
                     </div>
                   </div>
                 </div>
@@ -2170,14 +2156,14 @@ export const StudyRoom: React.FC<Props> = ({
 
               {/* Group 4: Quick Reactions */}
               <div className="space-y-2">
-                <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600">Kirim Reaksi Cepat</div>
-                <div className="flex items-center justify-between gap-1 p-2.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="text-[11px] font-black uppercase tracking-wider text-[#00785D]">Kirim Reaksi Cepat</div>
+                <div className="flex items-center justify-between gap-1 p-2.5 rounded-2xl bg-[#F4F8F9] border border-[#D2E4E8]">
                   {QUICK_REACTIONS.map((item, idx) => {
                     const IconComp = item.icon;
                     return (
                       <div key={item.id} className="flex flex-col items-center gap-1">
-                        <IconComp className="w-4 h-4 text-indigo-600" />
-                        <kbd className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono font-bold text-[10px]">{idx + 1}</kbd>
+                        <IconComp className="w-4 h-4 text-[#0F1E1C]" />
+                        <kbd className="px-2 py-0.5 rounded-full bg-white text-[#0F1E1C] font-mono font-bold text-[10px] border border-[#D2E4E8]">{idx + 1}</kbd>
                       </div>
                     );
                   })}
@@ -2191,7 +2177,7 @@ export const StudyRoom: React.FC<Props> = ({
               id="btn-confirm-shortcuts-modal"
               type="button"
               onClick={() => setShowShortcutsModal(false)}
-              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+              className="w-full py-3.5 rounded-full bg-[#FDC323] hover:bg-[#EBB215] text-[#0F1E1C] font-black text-xs transition-all shadow-[0_3px_0_#0F1E1C] active:translate-y-0.5 active:shadow-none border border-[#0F1E1C]/20 cursor-pointer"
             >
               Mengerti, Lanjutkan Belajar
             </button>
@@ -2202,61 +2188,61 @@ export const StudyRoom: React.FC<Props> = ({
       {/* Safety & Moderation Report Modal */}
       {showReportModal && (
         <div 
-          className="fixed inset-0 bg-indigo-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 selection:bg-amber-400 selection:text-indigo-950 font-sans"
+          className="fixed inset-0 bg-[#0F1E1C]/60 backdrop-blur-md z-50 flex items-center justify-center p-4 selection:bg-[#FDC323] selection:text-[#0F1E1C] font-sans"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowReportModal(false);
           }}
         >
-          <div className="max-w-md w-full bg-white rounded-[32px] p-6 shadow-2xl border-[8px] border-rose-400/30 text-slate-900 space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-100">
+          <div className="max-w-md w-full bg-white rounded-[32px] p-6 shadow-2xl border-2 border-[#D2E4E8] text-[#0F1E1C] space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDF5F7]">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-xs">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Laporkan Partner</h3>
-                  <p className="text-xs text-slate-500 font-medium">Bantu jaga ruang belajar tetap aman</p>
+                  <h3 className="text-base font-black text-[#0F1E1C]">Laporkan Partner</h3>
+                  <p className="text-xs text-[#3A6B6A] font-medium">Bantu jaga ruang belajar tetap aman</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowReportModal(false)}
-                className="p-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                className="p-1.5 rounded-full bg-[#EDF5F7] text-[#1D4D4A] hover:bg-[#D2E4E8] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs font-bold text-slate-700">
-              Pilih alasan pelaporan untuk menskip partner dan memberitahu moderasi sistem:
+            <p className="text-xs font-bold text-[#0F1E1C]">
+              Pilih alasan untuk mengakhiri sesi. Blokir berlaku selama koneksi ini aktif.
             </p>
 
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={() => handleReportUser('Tidak aktif / AFK')}
-                className="w-full p-3 rounded-2xl bg-slate-50 hover:bg-rose-50 border-2 border-slate-200 hover:border-rose-300 text-xs font-bold text-left text-slate-800 hover:text-rose-950 transition-all flex items-center justify-between"
+                onClick={() => handleReportUser('Tidak aktif / AFK', false)}
+                className="w-full p-3 rounded-2xl bg-[#F4F8F9] hover:bg-rose-50 border-2 border-[#D2E4E8] hover:border-rose-300 text-xs font-bold text-left text-[#0F1E1C] hover:text-rose-950 transition-all flex items-center justify-between"
               >
                 <span>💤 Tidak Aktif / AFK</span>
-                <span className="text-[10px] text-slate-400">Skip Sesi</span>
+                <span className="text-[10px] text-[#539BA9]">Skip Sesi</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleReportUser('Perilaku tidak pantas / Toksik')}
-                className="w-full p-3 rounded-2xl bg-slate-50 hover:bg-rose-50 border-2 border-slate-200 hover:border-rose-300 text-xs font-bold text-left text-slate-800 hover:text-rose-950 transition-all flex items-center justify-between"
+                onClick={() => handleReportUser('Perilaku tidak pantas / Toksik', true)}
+                className="w-full p-3 rounded-2xl bg-[#F4F8F9] hover:bg-rose-50 border-2 border-[#D2E4E8] hover:border-rose-300 text-xs font-bold text-left text-[#0F1E1C] hover:text-rose-950 transition-all flex items-center justify-between"
               >
                 <span>🚫 Perilaku Tidak Pantas / Toksik</span>
-                <span className="text-[10px] text-slate-400">Blokir & Skip</span>
+                <span className="text-[10px] text-[#539BA9]">Blokir & Skip</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleReportUser('Spam / Konten Mengganggu')}
-                className="w-full p-3 rounded-2xl bg-slate-50 hover:bg-rose-50 border-2 border-slate-200 hover:border-rose-300 text-xs font-bold text-left text-slate-800 hover:text-rose-950 transition-all flex items-center justify-between"
+                onClick={() => handleReportUser('Spam / Konten Mengganggu', true)}
+                className="w-full p-3 rounded-2xl bg-[#F4F8F9] hover:bg-rose-50 border-2 border-[#D2E4E8] hover:border-rose-300 text-xs font-bold text-left text-[#0F1E1C] hover:text-rose-950 transition-all flex items-center justify-between"
               >
                 <span>📢 Spam / Konten Tidak Layak</span>
-                <span className="text-[10px] text-slate-400">Blokir & Skip</span>
+                <span className="text-[10px] text-[#539BA9]">Blokir & Skip</span>
               </button>
             </div>
 
@@ -2264,7 +2250,7 @@ export const StudyRoom: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => setShowReportModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-colors"
+                className="px-4 py-2 rounded-full bg-[#EDF5F7] hover:bg-[#D2E4E8] text-[#1D4D4A] font-black text-xs transition-colors"
               >
                 Batal
               </button>

@@ -31,6 +31,7 @@ export interface UserStreakStats {
   totalSessions: number;
   currentStreak: number;
   lastStudyDate: string; // YYYY-MM-DD
+  studyDates?: string[];
   unlockedBadges?: string[];
 }
 

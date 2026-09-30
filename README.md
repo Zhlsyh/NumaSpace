@@ -65,6 +65,14 @@ NumaSpace/
 - [Node.js](https://nodejs.org/) versi 18 atau lebih baru.
 - [npm](https://www.npmjs.com/) atau [bun](https://bun.sh/).
 
+### **Konfigurasi Produksi**
+- Atur `ALLOWED_ORIGINS` di backend sebagai daftar origin frontend yang dipisahkan koma, misalnya `https://app.example.com`. Origin yang tidak terdaftar tidak dapat membuka koneksi Socket.IO.
+- Atur `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, dan `VITE_FIREBASE_APP_ID` untuk mengaktifkan Firebase. `VITE_FIREBASE_STORAGE_BUCKET` dan `VITE_FIREBASE_MESSAGING_SENDER_ID` bersifat opsional.
+- Jika konfigurasi Firebase tidak lengkap, aplikasi berjalan dalam mode stateless dan tidak mengirim request ke project demo.
+- Aktifkan Firebase Authentication > Sign-in method > Anonymous.
+- Salin isi `firestore.rules` ke Firebase Console > Firestore Database > Rules, lalu Publish. Rules hanya mengizinkan pemilik membaca/menulis/menghapus profil sementara; `activeSessions` tetap ditolak.
+- Setelah login Firebase CLI, Rules juga dapat dipasang dengan `firebase deploy --only firestore:rules --project PROJECT_ID`.
+
 ### **Langkah Penginstalasi & Menjalankan:**
 
 1. **Clone repository ini:**

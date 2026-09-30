@@ -1,8 +1,56 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Poppins', sans-serif;
+
+  /* Brand Palette from User */
+  --color-brand-primary: #00785d;
+  --color-brand-primary-hover: #00664f;
+  --color-brand-primary-light: #e6f5f1;
+  --color-brand-secondary: #32bfdb;
+  --color-brand-secondary-hover: #21adc9;
+  --color-brand-secondary-light: #e7f8fc;
+  --color-brand-accent: #fdc323;
+  --color-brand-accent-hover: #ebb215;
+  --color-brand-accent-light: #fff8e6;
+  --color-brand-support: #539ba9;
+  --color-brand-support-light: #edf5f7;
+
+  --color-brand-yellow: #fdc323;
+  --color-brand-yellow-hover: #ebb215;
+  --color-brand-yellow-light: #fff8e6;
+
+  --color-brand-emerald: #00785d;
+  --color-brand-emerald-hover: #00664f;
+  --color-brand-emerald-light: #e6f5f1;
+  --color-brand-emerald-dark: #005a46;
+
+  --color-brand-aqua: #32bfdb;
+  --color-brand-aqua-hover: #21adc9;
+  --color-brand-aqua-light: #e7f8fc;
+
+  --color-brand-slate: #539ba9;
+  --color-brand-slate-light: #edf5f7;
+  --color-brand-slate-border: #d2e4e8;
+
+  /* Clean Canvas & Dark Tone */
+  --color-dark-950: #0a1513;
+  --color-dark-900: #0f1e1c;
+  --color-dark-800: #172b28;
+  --color-dark-700: #233c38;
+
+  --color-surface-bg: #f6f9fa;
+  --color-surface-card: #ffffff;
+  --color-surface-subtle: #f4f8f9;
+  --color-surface-border: #d8e6e9;
+}
+
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #dff2ed;
+    background-image: linear-gradient(125deg, #d8f0e9 0%, #d8f1f5 52%, #fff1c9 100%);
+    color: #0f1e1c;
   }
   
   code, pre, .font-mono {
@@ -10,3 +58,29 @@
   }
 }
 
+/* Custom smooth minimalist scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d2e4e8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00785d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

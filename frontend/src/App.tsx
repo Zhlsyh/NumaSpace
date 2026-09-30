@@ -14,8 +14,7 @@ import { studyAudio } from './utils/audio';
 import { 
   authenticateAnonymously, 
   saveTemporaryProfile, 
-  createTemporarySessionDoc, 
-  deleteTemporarySessionData 
+  deleteTemporaryProfileData
 } from './utils/firebase';
 
 type AppState = 'entry' | 'searching' | 'in_room' | 'summary';
@@ -32,11 +31,11 @@ export default function App() {
   } | null>(null);
 
   const [globalStats, setGlobalStats] = useState<GlobalStats>({
-    onlineUsers: 1,
+    onlineUsers: 0,
     queueCount: 0,
     activeRoomsCount: 0,
-    totalMatchesCount: 142,
-    totalStudyMinutesCount: 3580,
+    totalMatchesCount: 0,
+    totalStudyMinutesCount: 0,
   });
   const [sessionSummary, setSessionSummary] = useState<{
     focusMinutes: number;
@@ -44,15 +43,9 @@ export default function App() {
   } | null>(null);
 
   const myProfileRef = useRef<UserProfile | null>(null);
-  const roomDataRef = useRef<RoomSessionData | null>(null);
-
   useEffect(() => {
     myProfileRef.current = myProfile;
   }, [myProfile]);
-
-  useEffect(() => {
-    roomDataRef.current = roomData;
-  }, [roomData]);
 
   // Initialize Socket.io connection on mount & authenticate Firebase Anonymously
   useEffect(() => {
@@ -104,8 +97,6 @@ export default function App() {
         todos: data.roomState.todos,
       });
 
-      // Register temporary session in Cloud Firestore
-      createTemporarySessionDoc(data.roomId, s.id || 'user1', data.partner.id);
       setAppState('in_room');
     });
 
@@ -127,11 +118,7 @@ export default function App() {
 
       // Clean up current room session data
       const currentProfile = myProfileRef.current;
-      const currentRoom = roomDataRef.current;
 
-      if (currentRoom && currentProfile) {
-        deleteTemporarySessionData(currentRoom.roomId, currentProfile.id);
-      }
       setRoomData(null);
 
       // Automatically re-join queue to find a new partner
@@ -184,32 +171,41 @@ export default function App() {
   const handleCancelQueue = () => {
     setSearchNotification(null);
     if (myProfile) {
-      deleteTemporarySessionData(undefined, myProfile.id);
+      deleteTemporaryProfileData(myProfile.id);
     }
     socket?.emit('leave_queue');
     setAppState('entry');
   };
 
   // 4. Skip Partner and find next in queue (Stateless cleanup per PRD)
-  const handleSkipPartner = () => {
+  const handleSkipPartner = (report?: { reason: string; blockPartner: boolean }) => {
     setSearchNotification(null);
     if (roomData && myProfile) {
-      deleteTemporarySessionData(roomData.roomId, myProfile.id);
-
-      socket?.emit('skip_partner', {
+      socket?.emit(report ? 'report_user' : 'skip_partner', {
         roomId: roomData.roomId,
         userProfile: myProfile,
+        ...report,
       });
       setRoomData(null);
       setAppState('searching');
     }
   };
 
+  const handleSubmitSessionFeedback = (rating: number, onResult: (saved: boolean) => void) => {
+    if (!socket?.connected) {
+      onResult(false);
+      return;
+    }
+    socket.emit('session_feedback', { rating }, (response: { ok: boolean }) => onResult(response.ok));
+  };
+
   // 5. Leave Room & Complete Session (Stateless cleanup per PRD)
   const handleLeaveRoom = (summary: { focusMinutes: number; todosCompleted: number }) => {
     setSearchNotification(null);
+    if (myProfile) {
+      deleteTemporaryProfileData(myProfile.id);
+    }
     if (roomData) {
-      deleteTemporarySessionData(roomData.roomId, myProfile?.id);
       socket?.emit('leave_room', { roomId: roomData.roomId });
     }
     setSessionSummary(summary);
@@ -231,7 +227,7 @@ export default function App() {
   const handleGoHome = () => {
     setSearchNotification(null);
     if (myProfile) {
-      deleteTemporarySessionData(undefined, myProfile.id);
+      deleteTemporaryProfileData(myProfile.id);
     }
     setSessionSummary(null);
     setRoomData(null);
@@ -239,7 +235,7 @@ export default function App() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-indigo-600 text-slate-900 font-sans antialiased">
+    <div className="w-full min-h-screen text-[#0F1E1C] font-sans antialiased">
       {/* 1. Anonymous Entry Screen */}
       {appState === 'entry' && (
         <AnonymousEntryForm
@@ -277,6 +273,7 @@ export default function App() {
         <SessionSummaryModal
           focusMinutes={sessionSummary.focusMinutes}
           todosCompleted={sessionSummary.todosCompleted}
+          onSubmitFeedback={handleSubmitSessionFeedback}
           onStartNewMatch={handleSummaryNewMatch}
           onGoHome={handleGoHome}
         />

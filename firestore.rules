@@ -1,0 +1,63 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /temporaryProfiles/{uid} {
+      function ownsProfile() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      function hasValidProfile() {
+        let data = request.resource.data;
+        return data.keys().hasAll([
+            'id', 'firebaseUid', 'displayName', 'gender', 'major', 'interest',
+            'currentGoal', 'studyMode', 'avatarColor', 'avatarIcon', 'createdAt', 'sessionStatus'
+          ])
+          && data.keys().hasOnly([
+            'id', 'firebaseUid', 'displayName', 'gender', 'major', 'interest',
+            'currentGoal', 'studyMode', 'subjectTopic', 'roomCode', 'avatarColor',
+            'avatarIcon', 'createdAt', 'sessionStatus'
+          ])
+          && data.id == uid
+          && data.firebaseUid == uid
+          && data.displayName is string
+          && data.displayName.size() > 0
+          && data.displayName.size() <= 48
+          && data.gender in ['male', 'female', 'other', 'prefer_not_to_say']
+          && data.major is string
+          && data.major.size() <= 80
+          && data.interest is string
+          && data.interest.size() <= 100
+          && data.currentGoal is string
+          && data.currentGoal.size() <= 180
+          && data.studyMode in ['pomodoro', 'silent', 'discussion', 'casual']
+          && (!('subjectTopic' in data) || (data.subjectTopic is string && data.subjectTopic.size() <= 100))
+          && (!('roomCode' in data) || (data.roomCode is string && data.roomCode.matches('^[A-Z0-9-]{4,24}$')))
+          && data.avatarColor in [
+            'from-[#FDC323] to-[#EBB215]',
+            'from-[#00785D] to-[#005A46]',
+            'from-[#32BFDB] to-[#21ADC9]',
+            'from-[#539BA9] to-[#00785D]',
+            'from-[#FDC323] to-[#32BFDB]'
+          ]
+          && data.avatarIcon is string
+          && data.avatarIcon.size() <= 32
+          && data.createdAt is int
+          && data.sessionStatus == 'active';
+      }
+
+      allow get: if ownsProfile();
+      allow list: if false;
+      allow create, update: if ownsProfile() && hasValidProfile();
+      allow delete: if ownsProfile();
+    }
+
+    match /activeSessions/{sessionId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

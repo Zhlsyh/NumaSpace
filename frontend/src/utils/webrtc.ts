@@ -112,13 +112,13 @@ export class WebRTCManager {
           }
         });
 
-        let quality: NetworkQuality = 'excellent';
+        let quality: NetworkQuality = 'unknown';
         if (rtt > 300) {
           quality = 'poor';
         } else if (rtt > 150) {
           quality = 'good';
-        } else if (rtt === 0) {
-          quality = 'good';
+        } else if (rtt > 0) {
+          quality = 'excellent';
         }
 
         this.onNetworkQualityCallback(quality, Math.round(rtt));

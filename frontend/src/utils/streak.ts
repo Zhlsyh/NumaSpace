@@ -1,6 +1,34 @@
 import { UserStreakStats, BadgeItem } from '../types';
 
 const STREAK_KEY = 'numaspace_user_streak_stats';
+const WEEKDAY_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+function getDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getCurrentWeekStudyDays(studyDates: string[], referenceDate = new Date()) {
+  const weekStart = new Date(referenceDate);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const completedDateKeys = new Set(studyDates);
+  const todayKey = getDateKey(referenceDate);
+
+  return WEEKDAY_LABELS.map((short, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    const dateKey = getDateKey(date);
+    return {
+      short,
+      dateNumber: date.getDate(),
+      studied: completedDateKeys.has(dateKey),
+      isToday: dateKey === todayKey,
+    };
+  });
+}
 
 export const ALL_BADGES: Omit<BadgeItem, 'unlocked'>[] = [
   { id: 'first_step', name: 'Langkah Pertama', description: 'Selesaikan sesi belajar pertama Anda', icon: '' },
@@ -19,7 +47,7 @@ export function calculateUnlockedBadges(stats: UserStreakStats): BadgeItem[] {
   if (stats.totalSessions >= 1) unlockedSet.add('first_step');
   if (stats.totalMinutes >= 60) unlockedSet.add('focus_master');
   if (stats.totalMinutes >= 250) unlockedSet.add('marathoner');
-  if (currentHour >= 21 || currentHour < 4) unlockedSet.add('night_owl');
+  if (stats.totalSessions > 0 && (currentHour >= 21 || currentHour < 4)) unlockedSet.add('night_owl');
   if (stats.currentStreak >= 3) unlockedSet.add('streak_legend');
   if (stats.totalSessions >= 5) unlockedSet.add('polymath');
 
@@ -34,12 +62,18 @@ export function getUserStreakStats(): UserStreakStats {
     const raw = localStorage.getItem(STREAK_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      const totalSessions = parsed.totalSessions || 0;
+      const lastStudyDate = totalSessions > 0 ? parsed.lastStudyDate || '' : '';
+      const studyDates = Array.isArray(parsed.studyDates)
+        ? parsed.studyDates.filter((date: unknown): date is string => typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date))
+        : totalSessions > 0 && lastStudyDate ? [lastStudyDate] : [];
       return {
         totalMinutes: parsed.totalMinutes || 0,
-        totalSessions: parsed.totalSessions || 0,
-        currentStreak: parsed.currentStreak || 1,
-        lastStudyDate: parsed.lastStudyDate || new Date().toISOString().split('T')[0],
-        unlockedBadges: parsed.unlockedBadges || ['first_step'],
+        totalSessions,
+        currentStreak: totalSessions > 0 ? parsed.currentStreak || 1 : 0,
+        lastStudyDate,
+        studyDates,
+        unlockedBadges: parsed.unlockedBadges || [],
       };
     }
   } catch (e) {
@@ -49,27 +83,28 @@ export function getUserStreakStats(): UserStreakStats {
   return {
     totalMinutes: 0,
     totalSessions: 0,
-    currentStreak: 1,
-    lastStudyDate: new Date().toISOString().split('T')[0],
-    unlockedBadges: ['first_step'],
+    currentStreak: 0,
+    lastStudyDate: '',
+    studyDates: [],
+    unlockedBadges: [],
   };
 }
 
 export function recordCompletedSession(focusMinutes: number): UserStreakStats {
   const current = getUserStreakStats();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getDateKey(new Date());
 
   let newStreak = current.currentStreak;
 
   if (current.lastStudyDate) {
-    const lastDate = new Date(current.lastStudyDate);
-    const currentDate = new Date(today);
-    const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const lastDate = new Date(`${current.lastStudyDate}T00:00:00`);
+    const currentDate = new Date(`${today}T00:00:00`);
+    const diffTime = currentDate.getTime() - lastDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       newStreak += 1;
-    } else if (diffDays > 1) {
+    } else if (diffDays > 1 || diffDays < 0) {
       newStreak = 1;
     }
   } else {
@@ -84,6 +119,7 @@ export function recordCompletedSession(focusMinutes: number): UserStreakStats {
     totalSessions: updatedSessions,
     currentStreak: newStreak,
     lastStudyDate: today,
+    studyDates: [...new Set([...(current.studyDates || []), today])].sort().slice(-365),
     unlockedBadges: current.unlockedBadges || [],
   };
 

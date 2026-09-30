@@ -214,28 +214,28 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 sm:border-4 border-indigo-500/30 w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-[#0F1E1C]/70 backdrop-blur-md animate-fade-in font-sans">
+      <div className="bg-white rounded-[28px] sm:rounded-[36px] shadow-2xl border-2 border-[#D2E4E8] w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col">
         {/* Modal Header */}
-        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-indigo-900 text-white flex items-center justify-between shrink-0">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-[#0F1E1C] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <Paintbrush className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0" />
-            <h2 className="text-sm sm:text-lg font-black tracking-wide truncate">Papan Tulis Digital (Whiteboard)</h2>
+            <Paintbrush className="w-4 h-4 sm:w-5 sm:h-5 text-[#FDC323] shrink-0" />
+            <h2 className="text-sm sm:text-base font-black tracking-wide truncate">Papan Tulis Digital (Shared Whiteboard)</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 sm:p-1.5 rounded-full hover:bg-indigo-800 text-indigo-200 hover:text-white transition-colors cursor-pointer shrink-0"
+            className="p-1 sm:p-1.5 rounded-full hover:bg-[#172B28] text-[#539BA9] hover:text-white transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tools Toolbar */}
-        <div className="p-2 sm:p-3 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 overflow-x-auto shrink-0">
+        <div className="p-2 sm:p-3 bg-[#F4F8F9] border-b border-[#D2E4E8] flex flex-wrap items-center justify-between gap-2 overflow-x-auto shrink-0">
           <div className="flex items-center gap-2">
             {/* Color Selectors */}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-1 bg-white p-1 rounded-full border border-[#D2E4E8]">
               {colors.map((c) => (
                 <button
                   key={c}
@@ -245,7 +245,7 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
                     setIsEraser(false);
                   }}
                   className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-transform cursor-pointer ${
-                    color === c && !isEraser ? 'scale-125 ring-2 ring-indigo-500' : 'hover:scale-110'
+                    color === c && !isEraser ? 'scale-125 ring-2 ring-[#0F1E1C]' : 'hover:scale-110'
                   }`}
                   style={{ backgroundColor: c }}
                 />
@@ -256,10 +256,10 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
             <button
               type="button"
               onClick={() => setIsEraser(!isEraser)}
-              className={`p-1.5 sm:p-2 rounded-2xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-full font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 isEraser
-                  ? 'bg-amber-400 text-indigo-950 font-black shadow'
-                  : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  ? 'bg-[#FDC323] text-[#0F1E1C] font-black border border-[#0F1E1C]/20 shadow-xs'
+                  : 'bg-white text-[#1D4D4A] hover:bg-[#EDF5F7] border border-[#D2E4E8]'
               }`}
             >
               <Eraser className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -267,15 +267,15 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
             </button>
 
             {/* Size Slider */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-2xl border border-slate-200">
-              <span className="text-[11px] sm:text-xs font-bold text-slate-600">Size:</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-full border border-[#D2E4E8]">
+              <span className="text-[11px] sm:text-xs font-bold text-[#4A7A79]">Size:</span>
               <input
                 type="range"
                 min="2"
                 max="20"
                 value={size}
                 onChange={(e) => setSize(parseInt(e.target.value))}
-                className="w-14 sm:w-20 accent-indigo-600 cursor-pointer"
+                className="w-14 sm:w-20 accent-[#0F1E1C] cursor-pointer"
               />
             </div>
           </div>
@@ -284,7 +284,7 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
             <button
               type="button"
               onClick={handleClearAll}
-              className="px-2.5 sm:px-3 py-1.5 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Bersihkan</span>
@@ -293,9 +293,9 @@ export const WhiteboardModal: React.FC<WhiteboardModalProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="px-3 sm:px-3.5 py-1.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1 shadow-md transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-[#0F1E1C] hover:bg-[#172B28] text-white font-black text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-[#FDC323]" />
               <span className="hidden sm:inline">Simpan</span>
             </button>
           </div>

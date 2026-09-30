@@ -8,6 +8,35 @@ import { createApiRouter } from "./routes/api";
 
 // Safe dir path determination for both CJS and ESM
 const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+const productionOriginDefaults = [
+  process.env.FRONTEND_URL,
+  process.env.RENDER_EXTERNAL_URL,
+  process.env.WEBSITE_HOSTNAME ? `https://${process.env.WEBSITE_HOSTNAME}` : undefined,
+].filter((origin): origin is string => Boolean(origin));
+const configuredOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : process.env.NODE_ENV === "production"
+    ? productionOriginDefaults
+    : [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+      ];
+const allowedOrigins = new Set(
+  configuredOrigins.flatMap((origin) => {
+    try {
+      return [new URL(origin.trim()).origin];
+    } catch {
+      return [];
+    }
+  }),
+);
+
+function isOriginAllowed(origin?: string) {
+  if (!origin) return process.env.NODE_ENV !== "production";
+  return allowedOrigins.has(origin);
+}
 
 async function startServer() {
   const app = express();
@@ -15,19 +44,30 @@ async function startServer() {
   const server = http.createServer(app);
 
   const io = new SocketIOServer(server, {
+    maxHttpBufferSize: 128 * 1024,
     cors: {
-      origin: "*",
+      origin: (origin, callback) => callback(null, isOriginAllowed(origin)),
       methods: ["GET", "POST"],
     },
+    allowRequest: (request, callback) => callback(null, isOriginAllowed(request.headers.origin)),
     transports: ["websocket", "polling"],
   });
 
+  if (process.env.NODE_ENV === "production" && allowedOrigins.size === 0) {
+    console.warn("Socket.IO browser access is disabled; configure ALLOWED_ORIGINS for the frontend origin.");
+  }
+
   app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.header("Access-Control-Allow-Origin", origin);
+      res.vary("Origin");
+    }
     if (req.method === "OPTIONS") {
-      res.sendStatus(200);
+      if (!isOriginAllowed(origin)) return res.sendStatus(403);
+      res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+      res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      return res.sendStatus(204);
     } else {
       next();
     }
