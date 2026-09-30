@@ -9,20 +9,23 @@ import { createApiRouter } from "./routes/api";
 // Safe dir path determination for both CJS and ESM
 const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
 const productionOriginDefaults = [
+  "https://numaspace.vercel.app",
   process.env.FRONTEND_URL,
   process.env.RENDER_EXTERNAL_URL,
   process.env.WEBSITE_HOSTNAME ? `https://${process.env.WEBSITE_HOSTNAME}` : undefined,
 ].filter((origin): origin is string => Boolean(origin));
-const configuredOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : process.env.NODE_ENV === "production"
-    ? productionOriginDefaults
-    : [
+const configuredOrigins = [
+  ...(process.env.NODE_ENV === "production" ? productionOriginDefaults : []),
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : []),
+  ...(process.env.NODE_ENV !== "production"
+    ? [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-      ];
+      ]
+    : []),
+];
 const allowedOrigins = new Set(
   configuredOrigins.flatMap((origin) => {
     try {
